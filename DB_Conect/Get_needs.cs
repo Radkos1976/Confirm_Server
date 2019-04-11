@@ -33,8 +33,7 @@ namespace DB_Conect
                 }
                 Loger.Log("START cust_ord " + (DateTime.Now - start));
                 // Utwórz połączenie z ORACLE
-                List<Orders_row> cust_ord = new List<Orders_row>();
-                Dictionary<string, int> D_columns= new Dictionary<string, int>();
+                List<Orders_row> Oracust_ord = new List<Orders_row>();
                 using (OracleConnection conO = new OracleConnection(Str_oracle_conn))
                 {
 
@@ -42,7 +41,8 @@ namespace DB_Conect
                     OracleGlobalization info = conO.GetSessionInfo();
                     info.DateFormat = "YYYY-MM-DD";
                     conO.SetSessionInfo(info);
-                    bool list_columns = false;                    
+                    bool list_columns = false;
+                    Dictionary<string, int> D_columns = new Dictionary<string, int>();
                     using (OracleCommand cust = new OracleCommand("" +
                         "SELECT ifsapp.customer_order_api.Get_Authorize_Code(a.ORDER_NO) KOOR,a.ORDER_NO,a.LINE_NO,a.REL_NO,a.LINE_ITEM_NO,a.CUSTOMER_PO_LINE_NO," +
                         "a.C_DIMENSIONS dimmension,To_Date(c.dat,Decode(InStr(c.dat,'-'),0,'YY/MM/DD','YYYY-MM-DD'))-Delivery_Leadtime Last_Mail_CONF," +
@@ -90,55 +90,804 @@ namespace DB_Conect
                                 "GROUP BY a.ORDER_NO,LINE_NO,REL_NO,LINE_ITEM_NO) b " +
                                 "WHERE a.HISTORY_NO=b.HI) c  " +
                              "ON c.id=a.id", conO))
-                        
-                    using (var reader = await cust.ExecuteReaderAsync(CommandBehavior.CloseConnection))
-                    {                        
-                        while (await reader.ReadAsync())
+                    {
+                        using (var reader = await cust.ExecuteReaderAsync(CommandBehavior.CloseConnection))
                         {
-                            if(!list_columns)
+                            while (await reader.ReadAsync())
                             {
-                                for(int col=0;col<reader.FieldCount; col++)
+                                if (!list_columns)
                                 {
-                                    D_columns.Add(reader.GetName(col).ToLower(), col);
+                                    for (int col = 0; col < reader.FieldCount; col++)
+                                    {
+                                        D_columns.Add(reader.GetName(col).ToLower(), col);
+                                    }
+                                    list_columns = true;
                                 }
-                                list_columns = true;
+                                Orders_row rw = new Orders_row
+                                {
+                                    Koor = reader.GetString(D_columns["koor"]),
+                                    Order_no = reader.GetString(D_columns["order_no"]),
+                                    Line_no = reader.GetString(D_columns["line_no"]),
+                                    Rel_no = reader.GetString(D_columns["rel_no"]),
+                                    Line_item_no = reader.GetInt32(D_columns["line_item_no"]),
+                                    Customer_po_line_no = reader.GetString(D_columns["customer_po_line_no"]),
+                                    Dimmension = reader.GetDouble(D_columns["dimmension"]),
+                                    Last_mail_conf = reader.GetDateTime(D_columns["last_mail_conf"]),
+                                    State_conf = reader.GetString(D_columns["state_conf"]),
+                                    Line_state = reader.GetString(D_columns["line_state"]),
+                                    Cust_order_state = reader.GetString(D_columns["line_state"]),
+                                    Country = reader.GetString(D_columns["country"]),
+                                    Cust_no = reader.GetString(D_columns["cust_no"]),
+                                    Zip_code = reader.GetString(D_columns["zip_code"]),
+                                    Addr1 = reader.GetString(D_columns["addr1"]),
+                                    Prom_date = reader.GetDateTime(D_columns["prom_date"]),
+                                    Prom_week = reader.GetString(D_columns["prom_week"]),
+                                    Load_id = reader.GetInt32(D_columns["load_id"]),
+                                    Ship_date = reader.GetDateTime(D_columns["ship_date"]),
+                                    Part_no = reader.GetString(D_columns["part_no"]),
+                                    Descr = reader.GetString(D_columns["descr"]),
+                                    Configuration = reader.GetString(D_columns["configuration"]),
+                                    Buy_qty_due = reader.GetDouble(D_columns["buy_qty_due"]),
+                                    Desired_qty = reader.GetDouble(D_columns["desired_qty"]),
+                                    Qty_invoiced = reader.GetDouble(D_columns["qty_invoiced"]),
+                                    Qty_shipped = reader.GetDouble(D_columns["qty_shipped"]),
+                                    Qty_assigned = reader.GetDouble(D_columns["qty_assigned"]),
+                                    Dop_connection_db = reader.GetString(D_columns["dop_connection_db"]),
+                                    Dop_id = reader.GetInt32(D_columns["dop_id"]),
+                                    Dop_state = reader.GetString(D_columns["dop_state"]),
+                                    Data_dop = reader.GetDateTime(D_columns["data_dop"]),
+                                    Dop_qty = reader.GetDouble(D_columns["dop_qty"]),
+                                    Dop_made = reader.GetDouble(D_columns["dop_made"]),
+                                    Date_entered = reader.GetDateTime(D_columns["date_entered"]),
+                                    Chksum = reader.GetInt32(D_columns["chksum"]),
+                                    Custid = reader.GetInt32(D_columns["custid"]),
+                                    Zest = reader.GetString(D_columns["zest"]),
+                                    Seria0 = reader.GetBoolean(D_columns["seria0"]),
+                                    Data0 = reader.GetDateTime(D_columns["data0"]),
+                                    Id = reader.GetGuid(D_columns["id"])
+                                };
+                                Oracust_ord.Add(rw);
                             }
-                            var rw = new Orders_row
-                            {
-                                Koor = reader.GetString(D_columns["koor"]),
-                                Order_no = reader.GetString(D_columns["order_no"]),
-                                Line_no = reader.GetString(D_columns["line_no"]),
-                                Rel_no = reader.GetString(D_columns["rel_no"]),
-                                Line_item_no = reader.GetInt32(D_columns["line_item_no"]),
-                                Customer_po_line_no = reader.GetString(D_columns["customer_po_line_no"]),
-                                Dimmension = reader.GetDouble(D_columns["dimmension"]),
-                                Last_mail_conf = reader.GetDateTime(D_columns["last_mail_conf"]),
-                                State_conf = reader.GetString(D_columns["state_conf"]),
-                                Line_state= reader.GetString(D_columns["line_state"]),
-                                Cust_order_state= reader.GetString(D_columns["line_state"]),
-                                Country= reader.GetString(D_columns["country"]),
-                                Cust_no= reader.GetString(D_columns["cust_no"]),
-                                Zip_code= reader.GetString(D_columns["zip_code"]),
-                                Addr1= reader.GetString(D_columns["addr1"]),
-                                Prom_date=reader.GetDateTime(D_columns["prom_date"]),
-                                Prom_week= reader.GetString(D_columns["prom_week"]),
-                                Load_id= reader.GetInt32(D_columns["load_id"]),
-                            };
                         }
                     }
+                    Oracust_ord.Sort();
                 }
+                List<Orders_row> PstgrCust_ord = new List<Orders_row>();
+                using (NpgsqlConnection conA = new NpgsqlConnection(npC))
+                {
+                    bool list_columns = false;
+                    Dictionary<string, int> D_columns = new Dictionary<string, int>();
+                    await conA.OpenAsync();
+                    using (NpgsqlCommand PstgrOrd = new NpgsqlCommand("Select * from cust_ord", conA))
+                    {
+                        using (var reader = await PstgrOrd.ExecuteReaderAsync(CommandBehavior.CloseConnection))
+                        {
+                            while (await reader.ReadAsync())
+                            {
+                                if (!list_columns)
+                                {
+                                    for (int col = 0; col < reader.FieldCount; col++)
+                                    {
+                                        D_columns.Add(reader.GetName(col).ToLower(), col);
+                                    }
+                                    list_columns = true;
+                                }
+                                Orders_row rw = new Orders_row
+                                {
+                                    Koor = reader.GetString(D_columns["koor"]),
+                                    Order_no = reader.GetString(D_columns["order_no"]),
+                                    Line_no = reader.GetString(D_columns["line_no"]),
+                                    Rel_no = reader.GetString(D_columns["rel_no"]),
+                                    Line_item_no = reader.GetInt32(D_columns["line_item_no"]),
+                                    Customer_po_line_no = reader.GetString(D_columns["customer_po_line_no"]),
+                                    Dimmension = reader.GetDouble(D_columns["dimmension"]),
+                                    Last_mail_conf = reader.GetDateTime(D_columns["last_mail_conf"]),
+                                    State_conf = reader.GetString(D_columns["state_conf"]),
+                                    Line_state = reader.GetString(D_columns["line_state"]),
+                                    Cust_order_state = reader.GetString(D_columns["line_state"]),
+                                    Country = reader.GetString(D_columns["country"]),
+                                    Cust_no = reader.GetString(D_columns["cust_no"]),
+                                    Zip_code = reader.GetString(D_columns["zip_code"]),
+                                    Addr1 = reader.GetString(D_columns["addr1"]),
+                                    Prom_date = reader.GetDateTime(D_columns["prom_date"]),
+                                    Prom_week = reader.GetString(D_columns["prom_week"]),
+                                    Load_id = reader.GetInt32(D_columns["load_id"]),
+                                    Ship_date = reader.GetDateTime(D_columns["ship_date"]),
+                                    Part_no = reader.GetString(D_columns["part_no"]),
+                                    Descr = reader.GetString(D_columns["descr"]),
+                                    Configuration = reader.GetString(D_columns["configuration"]),
+                                    Buy_qty_due = reader.GetDouble(D_columns["buy_qty_due"]),
+                                    Desired_qty = reader.GetDouble(D_columns["desired_qty"]),
+                                    Qty_invoiced = reader.GetDouble(D_columns["qty_invoiced"]),
+                                    Qty_shipped = reader.GetDouble(D_columns["qty_shipped"]),
+                                    Qty_assigned = reader.GetDouble(D_columns["qty_assigned"]),
+                                    Dop_connection_db = reader.GetString(D_columns["dop_connection_db"]),
+                                    Dop_id = reader.GetInt32(D_columns["dop_id"]),
+                                    Dop_state = reader.GetString(D_columns["dop_state"]),
+                                    Data_dop = reader.GetDateTime(D_columns["data_dop"]),
+                                    Dop_qty = reader.GetDouble(D_columns["dop_qty"]),
+                                    Dop_made = reader.GetDouble(D_columns["dop_made"]),
+                                    Date_entered = reader.GetDateTime(D_columns["date_entered"]),
+                                    Chksum = reader.GetInt32(D_columns["chksum"]),
+                                    Custid = reader.GetInt32(D_columns["custid"]),
+                                    Zest = reader.GetString(D_columns["zest"]),
+                                    Seria0 = reader.GetBoolean(D_columns["seria0"]),
+                                    Data0 = reader.GetDateTime(D_columns["data0"])
+                                };
+                                PstgrCust_ord.Add(rw);
+                            }
+                        }
+                    }
+                    PstgrCust_ord.Sort();
+                }
+                List<Orders_row> _Row_del = new List<Orders_row>();
+                List<Orders_row> _Row_mod = new List<Orders_row>();
+                List<Orders_row> _Row_add = new List<Orders_row>();
+                Loger.Log("REaDY UPDATE cust_ord " + (DateTime.Now - start));
+                int cust_count = 0;
+                int max_cust_ord = PstgrCust_ord.Count;
+                foreach (Orders_row rek in Oracust_ord)
+                {
+                    if (max_cust_ord > cust_count)
+                    {
+                        while (rek.Custid > PstgrCust_ord[cust_count].Custid)
+                        {
+                            Orders_row rw = new Orders_row
+                            {
+                                Id = rek.Id,
+                                Custid = rek.Custid
+                            };
+                            _Row_del.Add(rw);
+                            cust_count++;
+                            if (max_cust_ord <= cust_count) { break; }
+                        }
+                    }
+                    if (max_cust_ord > cust_count)
+                    {
+                        if (rek.Custid == PstgrCust_ord[cust_count].Custid)
+                        {
+                            bool updt = false;
+                            bool dta0 = false;
+                            bool dta1 = false;
+                            if (rek.Data0.ToString() == "") { dta0 = true; }
+                            if (PstgrCust_ord[cust_count].Data0.ToString() == "") { dta1 = true; }
+                            if (rek.Chksum != PstgrCust_ord[cust_count].Chksum | rek.Seria0 != PstgrCust_ord[cust_count].Seria0)
+                            {
+                                updt = true;
+                            }
+                            else if (dta0 != dta1)
+                            {
+                                if (PstgrCust_ord[cust_count].Data0 != rek.Data0)
+                                {
+                                    updt = true;
+                                }
+                            }
+                            else if (dta0 == false && dta1 == false)
+                            {
+                                if (PstgrCust_ord[cust_count].Data0.Date != rek.Data0.Date)
+                                {
+                                    updt = true;
+                                }
+                            }
+                            if (!updt)
+                            {
+                                if (!updt && PstgrCust_ord[cust_count].State_conf.ToString() != rek.State_conf.ToString())
+                                {
+                                    updt = true;
+                                }
+                                if (!updt && PstgrCust_ord[cust_count].Last_mail_conf.ToString() != rek.Last_mail_conf.ToString())
+                                {
+                                    updt = true;
+                                }
+                            }
+                            if (!updt)
+                            {
+                                if (!updt && PstgrCust_ord[cust_count].Customer_po_line_no.ToString() != rek.Customer_po_line_no.ToString())
+                                {
+                                    updt = true;
+                                }
+                            }
+                            if (!updt)
+                            {
+                                if (!PstgrCust_ord[cust_count].Dimmension.HasValue)
+                                {
+                                    if (rek.Dimmension.HasValue)
+                                    {
+                                        updt = true;
+                                    }
+                                }
+                                else
+                                {
+                                    if (!updt && PstgrCust_ord[cust_count].Dimmension != rek.Dimmension)
+                                    {
+                                        updt = true;
+                                    }
+                                }
+                            }
+                            if (!updt)
+                            {
+                                if (!updt && PstgrCust_ord[cust_count].Line_state.ToString() != rek.Line_state.ToString())
+                                {
+                                    updt = true;
+                                }
+                                if (!updt && PstgrCust_ord[cust_count].Cust_order_state.ToString() != rek.Cust_order_state.ToString())
+                                {
+                                    updt = true;
+                                }
+                            }
+                            if (!updt)
+                            {
+                                if (!updt && PstgrCust_ord[cust_count].Prom_week != rek.Prom_week)
+                                {
+                                    updt = true;
+                                }
+                                if (!updt && PstgrCust_ord[cust_count].Addr1.ToString() != rek.Addr1.ToString())
+                                {
+                                    updt = true;
+                                }
+                            }
+                            if (!updt)
+                            {
+                                if (!updt && PstgrCust_ord[cust_count].Load_id.ToString() != rek.Load_id.ToString())
+                                {
+                                    updt = true;
+                                }
+                                if (!updt && PstgrCust_ord[cust_count].Prom_date.Date != rek.Prom_date.Date)
+                                {
+                                    updt = true;
+                                }
+                            }
+                            if (!updt)
+                            {
+                                if (!updt && PstgrCust_ord[cust_count].Last_mail_conf.ToString() == "")
+                                {
+                                    if (rek.Last_mail_conf.ToString() != "")
+                                    {
+                                        updt = true;
+                                    }
+                                }
+                                else
+                                {
+                                    if (rek.Last_mail_conf.ToString() == "")
+                                    {
+                                        updt = true;
+                                    }
+                                    else
+                                    {
+                                        if (PstgrCust_ord[cust_count].Last_mail_conf != rek.Last_mail_conf.Date)
+                                        {
+                                            updt = true;
+                                        }
+                                    }
+                                }
+                            }
+                            if (!updt)
+                            {
+                                if (!updt && PstgrCust_ord[cust_count].Ship_date.ToString() == "" || !PstgrCust_ord[cust_count].Ship_date.HasValue)
+                                {
+                                    if (rek.Ship_date.ToString() != "")
+                                    {
+                                        updt = true;
+                                    }
+                                }
+                                else
+                                {
+                                    if (rek.Ship_date.ToString() == "" || !rek.Ship_date.HasValue)
+                                    {
+                                        updt = true;
+                                    }
+                                    else
+                                    {
+                                        if (Convert.ToDateTime(PstgrCust_ord[cust_count].Ship_date).Date != Convert.ToDateTime(rek.Ship_date).Date)
+                                        {
+                                            updt = true;
+                                        }
+                                    }
+                                }
+                            }
+                            if (!updt)
+                            {
+                                if (!updt && PstgrCust_ord[cust_count].Dop_id != rek.Dop_id)
+                                {
+                                    updt = true;
+                                }
+                                if (!updt && PstgrCust_ord[cust_count].Dop_state.ToString() != rek.Dop_state.ToString())
+                                {
+                                    updt = true;
+                                }
+                                if (!updt && PstgrCust_ord[cust_count].Data_dop.ToString() == "" || PstgrCust_ord[cust_count].Data_dop.HasValue)
+                                {
+                                    if (rek.Data_dop.ToString() != "")
+                                    {
+                                        updt = true;
+                                    }
+                                }
+                                else
+                                {
+                                    if (rek.Data_dop.ToString() == "" || !rek.Data_dop.HasValue)
+                                    {
+                                        updt = true;
+                                    }
+                                    else
+                                    {
+                                        if (Convert.ToDateTime(PstgrCust_ord[cust_count].Data_dop).Date != Convert.ToDateTime(rek.Data_dop).Date)
+                                        {
+                                            updt = true;
+                                        }
+                                    }
+                                }
+                            }
+
+                            if (updt)
+                            {
+                                Orders_row rw = new Orders_row
+                                {
+                                    Koor = rek.Koor,
+                                    Order_no = rek.Order_no,
+                                    Line_no = rek.Line_no,
+                                    Rel_no = rek.Rel_no,
+                                    Line_item_no = rek.Line_item_no,
+                                    Customer_po_line_no = rek.Customer_po_line_no,
+                                    Dimmension = rek.Dimmension,
+                                    Last_mail_conf = rek.Last_mail_conf,
+                                    State_conf = rek.State_conf,
+                                    Line_state = rek.Line_state,
+                                    Cust_order_state = rek.Line_state,
+                                    Country = rek.Country,
+                                    Cust_no = rek.Cust_no,
+                                    Zip_code = rek.Zip_code,
+                                    Addr1 = rek.Addr1,
+                                    Prom_date = rek.Prom_date,
+                                    Prom_week = rek.Prom_week,
+                                    Load_id = rek.Load_id,
+                                    Ship_date = rek.Ship_date,
+                                    Part_no = rek.Part_no,
+                                    Descr = rek.Descr,
+                                    Configuration = rek.Configuration,
+                                    Buy_qty_due = rek.Buy_qty_due,
+                                    Desired_qty = rek.Desired_qty,
+                                    Qty_invoiced = rek.Qty_invoiced,
+                                    Qty_shipped = rek.Qty_shipped,
+                                    Qty_assigned = rek.Qty_assigned,
+                                    Dop_connection_db = rek.Dop_connection_db,
+                                    Dop_id = rek.Dop_id,
+                                    Dop_state = rek.Dop_state,
+                                    Data_dop = rek.Data_dop,
+                                    Dop_qty = rek.Dop_qty,
+                                    Dop_made = rek.Dop_made,
+                                    Date_entered = rek.Date_entered,
+                                    Chksum = rek.Chksum,
+                                    Custid = rek.Custid,
+                                    Zest = rek.Zest,
+                                    Seria0 = rek.Seria0,
+                                    Data0 = rek.Data0,
+                                    Id = PstgrCust_ord[cust_count].Id
+                                };
+                                _Row_mod.Add(rw);
+                            }
+                            cust_count++;
+                        }
+                        else
+                        {
+                            Orders_row rw = new Orders_row
+                            {
+                                Koor = rek.Koor,
+                                Order_no = rek.Order_no,
+                                Line_no = rek.Line_no,
+                                Rel_no = rek.Rel_no,
+                                Line_item_no = rek.Line_item_no,
+                                Customer_po_line_no = rek.Customer_po_line_no,
+                                Dimmension = rek.Dimmension,
+                                Last_mail_conf = rek.Last_mail_conf,
+                                State_conf = rek.State_conf,
+                                Line_state = rek.Line_state,
+                                Cust_order_state = rek.Line_state,
+                                Country = rek.Country,
+                                Cust_no = rek.Cust_no,
+                                Zip_code = rek.Zip_code,
+                                Addr1 = rek.Addr1,
+                                Prom_date = rek.Prom_date,
+                                Prom_week = rek.Prom_week,
+                                Load_id = rek.Load_id,
+                                Ship_date = rek.Ship_date,
+                                Part_no = rek.Part_no,
+                                Descr = rek.Descr,
+                                Configuration = rek.Configuration,
+                                Buy_qty_due = rek.Buy_qty_due,
+                                Desired_qty = rek.Desired_qty,
+                                Qty_invoiced = rek.Qty_invoiced,
+                                Qty_shipped = rek.Qty_shipped,
+                                Qty_assigned = rek.Qty_assigned,
+                                Dop_connection_db = rek.Dop_connection_db,
+                                Dop_id = rek.Dop_id,
+                                Dop_state = rek.Dop_state,
+                                Data_dop = rek.Data_dop,
+                                Dop_qty = rek.Dop_qty,
+                                Dop_made = rek.Dop_made,
+                                Date_entered = rek.Date_entered,
+                                Chksum = rek.Chksum,
+                                Custid = rek.Custid,
+                                Zest = rek.Zest,
+                                Seria0 = rek.Seria0,
+                                Data0 = rek.Data0,
+                                Id = Guid.NewGuid()
+                            };
+                            _Row_add.Add(rw);
+                        }
+                    }
+                    else
+                    {
+                        Orders_row rw = new Orders_row
+                        {
+                            Koor = rek.Koor,
+                            Order_no = rek.Order_no,
+                            Line_no = rek.Line_no,
+                            Rel_no = rek.Rel_no,
+                            Line_item_no = rek.Line_item_no,
+                            Customer_po_line_no = rek.Customer_po_line_no,
+                            Dimmension = rek.Dimmension,
+                            Last_mail_conf = rek.Last_mail_conf,
+                            State_conf = rek.State_conf,
+                            Line_state = rek.Line_state,
+                            Cust_order_state = rek.Line_state,
+                            Country = rek.Country,
+                            Cust_no = rek.Cust_no,
+                            Zip_code = rek.Zip_code,
+                            Addr1 = rek.Addr1,
+                            Prom_date = rek.Prom_date,
+                            Prom_week = rek.Prom_week,
+                            Load_id = rek.Load_id,
+                            Ship_date = rek.Ship_date,
+                            Part_no = rek.Part_no,
+                            Descr = rek.Descr,
+                            Configuration = rek.Configuration,
+                            Buy_qty_due = rek.Buy_qty_due,
+                            Desired_qty = rek.Desired_qty,
+                            Qty_invoiced = rek.Qty_invoiced,
+                            Qty_shipped = rek.Qty_shipped,
+                            Qty_assigned = rek.Qty_assigned,
+                            Dop_connection_db = rek.Dop_connection_db,
+                            Dop_id = rek.Dop_id,
+                            Dop_state = rek.Dop_state,
+                            Data_dop = rek.Data_dop,
+                            Dop_qty = rek.Dop_qty,
+                            Dop_made = rek.Dop_made,
+                            Date_entered = rek.Date_entered,
+                            Chksum = rek.Chksum,
+                            Custid = rek.Custid,
+                            Zest = rek.Zest,
+                            Seria0 = rek.Seria0,
+                            Data0 = rek.Data0,
+                            Id = Guid.NewGuid()
+                        };
+                        _Row_add.Add(rw);
+                    }
+                }
+                PstgrCust_ord = null;
+                Oracust_ord = null;
+                int c_add = _Row_add.Count;
+                int c_del = _Row_del.Count;
+                int c_mod = _Row_mod.Count;
+                if (c_add + c_del + c_mod > 0)
+                {
+                    using (NpgsqlConnection conB = new NpgsqlConnection(npC))
+                    {
+                        Loger.Log("START UPDATE_cust: " + (DateTime.Now - start));
+                        await conB.OpenAsync();
+                        using (NpgsqlTransaction TR_CUSTORD = conB.BeginTransaction())
+                        {
+                            if (c_del > 0)
+                            {
+                                Loger.Log("START DELETE_GIUD_cust: " + (DateTime.Now - start));
+                                Loger.Log("RECORDS DELETE_cust: " + c_del);
+                                using (NpgsqlCommand cmd = new NpgsqlCommand("DELETE from cust_ord where \"id\"=@ID", conB))
+                                {
+                                    cmd.Parameters.Add("@ID", NpgsqlTypes.NpgsqlDbType.Uuid);
+                                    cmd.Prepare();
+                                    foreach (Orders_row row in _Row_del)
+                                    {
+                                        cmd.Parameters[0].Value = row.Id;
+                                        cmd.ExecuteNonQuery();
+                                    }
+                                    _Row_del = null;
+                                    Loger.Log("END DELETE_GIUD_cust: " + (DateTime.Now - start));
+                                }
+                            }
+                            if (c_mod > 0)
+                            {
+                                Loger.Log("Start Modify_cust: " + (DateTime.Now - start));
+                                Loger.Log("RECORDS Modify cust: " + c_mod);
+                                using (NpgsqlCommand cmd = new NpgsqlCommand("" +
+                                            "UPDATE public.cust_ord " +
+                                            "SET koor=@koor, order_no=@order_no, line_no=@line_no, rel_no=@rel_no, line_item_no=@line_item_no, " +
+                                                "customer_po_line_no=@customer_po_line_no, dimmension=@dimmension , last_mail_conf=@last_mail_conf, state_conf=@state_conf," +
+                                                " line_state=@line_state, cust_order_state=@cust_order_state, country=@country, cust_no=@cust_no, zip_code=@zip_code, addr1=@addr1," +
+                                                " prom_date=@prom_date, prom_week=@prom_week, load_id=@load_id, ship_date=@ship_date, part_no=@part_no, descr=@descr," +
+                                                " configuration=@configuration, buy_qty_due=@buy_qty_due, desired_qty=@desired_qty, qty_invoiced=@qty_invoiced," +
+                                                " qty_shipped=@qty_shipped, qty_assigned=@qty_assigned, dop_connection_db=@dop_connection_db, dop_id=@dop_id," +
+                                                " dop_state=@dop_state, data_dop=@data_dop, dop_qty=@dop_qty, dop_made=@dop_made, date_entered=@date_entered, chksum=@chksum," +
+                                                " custid=@custid,zest=@zest,seria0=@seria0,data0=@data0,objversion=current_timestamp " +
+                                             "where \"id\"=@id;", conB))
+                                {
+                                    cmd.Parameters.Add("@koor", NpgsqlTypes.NpgsqlDbType.Varchar);
+                                    cmd.Parameters.Add("@order_no", NpgsqlTypes.NpgsqlDbType.Varchar);
+                                    cmd.Parameters.Add("@line_no", NpgsqlTypes.NpgsqlDbType.Varchar);
+                                    cmd.Parameters.Add("@rel_no", NpgsqlTypes.NpgsqlDbType.Varchar);
+                                    cmd.Parameters.Add("@line_item_no", NpgsqlTypes.NpgsqlDbType.Integer);
+                                    cmd.Parameters.Add("@customer_po_line_no", NpgsqlTypes.NpgsqlDbType.Varchar);
+                                    cmd.Parameters.Add("@dimmension", NpgsqlTypes.NpgsqlDbType.Double);
+                                    cmd.Parameters.Add("@last_mail_conf", NpgsqlTypes.NpgsqlDbType.Date);
+                                    cmd.Parameters.Add("@state_conf", NpgsqlTypes.NpgsqlDbType.Varchar);
+                                    cmd.Parameters.Add("@line_state", NpgsqlTypes.NpgsqlDbType.Varchar);
+                                    cmd.Parameters.Add("@cust_order_state", NpgsqlTypes.NpgsqlDbType.Varchar);
+                                    cmd.Parameters.Add("@country", NpgsqlTypes.NpgsqlDbType.Varchar);
+                                    cmd.Parameters.Add("@cust_no", NpgsqlTypes.NpgsqlDbType.Varchar);
+                                    cmd.Parameters.Add("@zip_code", NpgsqlTypes.NpgsqlDbType.Varchar);
+                                    cmd.Parameters.Add("@addr1", NpgsqlTypes.NpgsqlDbType.Varchar);
+                                    cmd.Parameters.Add("@prom_date", NpgsqlTypes.NpgsqlDbType.Date);
+                                    cmd.Parameters.Add("@prom_week", NpgsqlTypes.NpgsqlDbType.Varchar);
+                                    cmd.Parameters.Add("@load_id", NpgsqlTypes.NpgsqlDbType.Integer);
+                                    cmd.Parameters.Add("@ship_date", NpgsqlTypes.NpgsqlDbType.Date);
+                                    cmd.Parameters.Add("@part_no", NpgsqlTypes.NpgsqlDbType.Varchar);
+                                    cmd.Parameters.Add("@descr", NpgsqlTypes.NpgsqlDbType.Varchar);
+                                    cmd.Parameters.Add("@configuration", NpgsqlTypes.NpgsqlDbType.Varchar);
+                                    cmd.Parameters.Add("@buy_qty_due", NpgsqlTypes.NpgsqlDbType.Double);
+                                    cmd.Parameters.Add("@desired_qty", NpgsqlTypes.NpgsqlDbType.Double);
+                                    cmd.Parameters.Add("@qty_invoiced", NpgsqlTypes.NpgsqlDbType.Double);
+                                    cmd.Parameters.Add("@qty_shipped", NpgsqlTypes.NpgsqlDbType.Double);
+                                    cmd.Parameters.Add("@qty_assigned", NpgsqlTypes.NpgsqlDbType.Double);
+                                    cmd.Parameters.Add("@dop_connection_db", NpgsqlTypes.NpgsqlDbType.Varchar);
+                                    cmd.Parameters.Add("@dop_id", NpgsqlTypes.NpgsqlDbType.Integer);
+                                    cmd.Parameters.Add("@dop_state", NpgsqlTypes.NpgsqlDbType.Varchar);
+                                    cmd.Parameters.Add("@data_dop", NpgsqlTypes.NpgsqlDbType.Date);
+                                    cmd.Parameters.Add("@dop_qty", NpgsqlTypes.NpgsqlDbType.Double);
+                                    cmd.Parameters.Add("@dop_made", NpgsqlTypes.NpgsqlDbType.Double);
+                                    cmd.Parameters.Add("@date_entered", NpgsqlTypes.NpgsqlDbType.Timestamp);
+                                    cmd.Parameters.Add("@chksum", NpgsqlTypes.NpgsqlDbType.Integer);
+                                    cmd.Parameters.Add("@custid", NpgsqlTypes.NpgsqlDbType.Integer);
+                                    cmd.Parameters.Add("@zest", NpgsqlTypes.NpgsqlDbType.Varchar);
+                                    cmd.Parameters.Add("@seria0", NpgsqlTypes.NpgsqlDbType.Boolean);
+                                    cmd.Parameters.Add("@data0", NpgsqlTypes.NpgsqlDbType.Date);
+                                    cmd.Parameters.Add("@id", NpgsqlTypes.NpgsqlDbType.Uuid);
+                                    cmd.Prepare();
+                                    foreach (Orders_row row in _Row_mod)
+                                    {
+                                        cmd.Parameters[0].Value = row.Koor;
+                                        cmd.Parameters[1].Value = row.Order_no;
+                                        cmd.Parameters[2].Value = row.Line_no;
+                                        cmd.Parameters[3].Value = row.Rel_no;
+                                        cmd.Parameters[4].Value = row.Line_item_no;
+                                        cmd.Parameters[5].Value = row.Customer_po_line_no;
+                                        cmd.Parameters[6].Value = row.Dimmension;
+                                        cmd.Parameters[7].Value = row.Last_mail_conf;
+                                        cmd.Parameters[8].Value = row.State_conf;
+                                        cmd.Parameters[9].Value = row.Line_state;
+                                        cmd.Parameters[10].Value = row.Line_state;
+                                        cmd.Parameters[11].Value = row.Country;
+                                        cmd.Parameters[12].Value = row.Cust_no;
+                                        cmd.Parameters[13].Value = row.Zip_code;
+                                        cmd.Parameters[14].Value = row.Addr1;
+                                        cmd.Parameters[15].Value = row.Prom_date;
+                                        cmd.Parameters[16].Value = row.Prom_week;
+                                        cmd.Parameters[17].Value = row.Load_id;
+                                        cmd.Parameters[18].Value = row.Ship_date;
+                                        cmd.Parameters[19].Value = row.Part_no;
+                                        cmd.Parameters[20].Value = row.Descr;
+                                        cmd.Parameters[21].Value = row.Configuration;
+                                        cmd.Parameters[22].Value = row.Buy_qty_due;
+                                        cmd.Parameters[23].Value = row.Desired_qty;
+                                        cmd.Parameters[24].Value = row.Qty_invoiced;
+                                        cmd.Parameters[25].Value = row.Qty_shipped;
+                                        cmd.Parameters[26].Value = row.Qty_assigned;
+                                        cmd.Parameters[27].Value = row.Dop_connection_db;
+                                        cmd.Parameters[28].Value = row.Dop_id;
+                                        cmd.Parameters[28].Value = row.Dop_state;
+                                        cmd.Parameters[28].Value = row.Data_dop;
+                                        cmd.Parameters[28].Value = row.Dop_qty;
+                                        cmd.Parameters[28].Value = row.Dop_made;
+                                        cmd.Parameters[28].Value = row.Date_entered;
+                                        cmd.Parameters[28].Value = row.Chksum;
+                                        cmd.Parameters[28].Value = row.Custid;
+                                        cmd.Parameters[28].Value = row.Zest;
+                                        cmd.Parameters[28].Value = row.Seria0;
+                                        cmd.Parameters[28].Value = row.Data0;
+                                        cmd.Parameters[28].Value = row.Id;
+                                        cmd.ExecuteNonQuery();
+                                    }
+                                    _Row_mod = null;
+                                    Loger.Log("END Modify_cust: " + (DateTime.Now - start));
+                                }
+                            }
+                            if (c_add > 0)
+                            {
+                                Loger.Log("START INSERT_cust: " + (DateTime.Now - start));
+                                Loger.Log("RECORDS INSERT cust: " + c_add);
+                                using (NpgsqlCommand cmd = new NpgsqlCommand("" +
+                                            "INSERT INTO public.cust_ord" +
+                                            "(koor, order_no, line_no, rel_no, line_item_no,customer_po_line_no,dimmension, last_mail_conf, state_conf, line_state," +
+                                                " cust_order_state, country, cust_no, zip_code, addr1, prom_date, prom_week, load_id, ship_date, part_no, descr," +
+                                                " configuration, buy_qty_due, desired_qty, qty_invoiced, qty_shipped, qty_assigned, dop_connection_db, dop_id, dop_state," +
+                                                " data_dop, dop_qty, dop_made, date_entered, chksum, custid, id,zest,seria0,data0,objversion) " +
+                                            "VALUES " +
+                                            "(@koor, @order_no, @line_no, @rel_no, @line_item_no,@customer_po_line_no,@dimmension, @last_mail_conf, @state_conf, @line_state," +
+                                            " @cust_order_state, @country, @cust_no, @zip_code, @addr1, @prom_date, @prom_week, @load_id, @ship_date, @part_no, @descr," +
+                                            " @configuration, @buy_qty_due, @desired_qty, @qty_invoiced, @qty_shipped, @qty_assigned, @dop_connection_db, @dop_id, @dop_state," +
+                                            " @data_dop, @dop_qty, @dop_made, @date_entered, @chksum, @custid, @id,@zest,@seria0,@data0,current_timestamp);", conB))
+                                {
+                                    cmd.Parameters.Add("@koor", NpgsqlTypes.NpgsqlDbType.Varchar);
+                                    cmd.Parameters.Add("@order_no", NpgsqlTypes.NpgsqlDbType.Varchar);
+                                    cmd.Parameters.Add("@line_no", NpgsqlTypes.NpgsqlDbType.Varchar);
+                                    cmd.Parameters.Add("@rel_no", NpgsqlTypes.NpgsqlDbType.Varchar);
+                                    cmd.Parameters.Add("@line_item_no", NpgsqlTypes.NpgsqlDbType.Integer);
+                                    cmd.Parameters.Add("@customer_po_line_no", NpgsqlTypes.NpgsqlDbType.Varchar);
+                                    cmd.Parameters.Add("@dimmension", NpgsqlTypes.NpgsqlDbType.Double);
+                                    cmd.Parameters.Add("@last_mail_conf", NpgsqlTypes.NpgsqlDbType.Date);
+                                    cmd.Parameters.Add("@state_conf", NpgsqlTypes.NpgsqlDbType.Varchar);
+                                    cmd.Parameters.Add("@line_state", NpgsqlTypes.NpgsqlDbType.Varchar);
+                                    cmd.Parameters.Add("@cust_order_state", NpgsqlTypes.NpgsqlDbType.Varchar);
+                                    cmd.Parameters.Add("@country", NpgsqlTypes.NpgsqlDbType.Varchar);
+                                    cmd.Parameters.Add("@cust_no", NpgsqlTypes.NpgsqlDbType.Varchar);
+                                    cmd.Parameters.Add("@zip_code", NpgsqlTypes.NpgsqlDbType.Varchar);
+                                    cmd.Parameters.Add("@addr1", NpgsqlTypes.NpgsqlDbType.Varchar);
+                                    cmd.Parameters.Add("@prom_date", NpgsqlTypes.NpgsqlDbType.Date);
+                                    cmd.Parameters.Add("@prom_week", NpgsqlTypes.NpgsqlDbType.Varchar);
+                                    cmd.Parameters.Add("@load_id", NpgsqlTypes.NpgsqlDbType.Integer);
+                                    cmd.Parameters.Add("@ship_date", NpgsqlTypes.NpgsqlDbType.Date);
+                                    cmd.Parameters.Add("@part_no", NpgsqlTypes.NpgsqlDbType.Varchar);
+                                    cmd.Parameters.Add("@descr", NpgsqlTypes.NpgsqlDbType.Varchar);
+                                    cmd.Parameters.Add("@configuration", NpgsqlTypes.NpgsqlDbType.Varchar);
+                                    cmd.Parameters.Add("@buy_qty_due", NpgsqlTypes.NpgsqlDbType.Double);
+                                    cmd.Parameters.Add("@desired_qty", NpgsqlTypes.NpgsqlDbType.Double);
+                                    cmd.Parameters.Add("@qty_invoiced", NpgsqlTypes.NpgsqlDbType.Double);
+                                    cmd.Parameters.Add("@qty_shipped", NpgsqlTypes.NpgsqlDbType.Double);
+                                    cmd.Parameters.Add("@qty_assigned", NpgsqlTypes.NpgsqlDbType.Double);
+                                    cmd.Parameters.Add("@dop_connection_db", NpgsqlTypes.NpgsqlDbType.Varchar);
+                                    cmd.Parameters.Add("@dop_id", NpgsqlTypes.NpgsqlDbType.Integer);
+                                    cmd.Parameters.Add("@dop_state", NpgsqlTypes.NpgsqlDbType.Varchar);
+                                    cmd.Parameters.Add("@data_dop", NpgsqlTypes.NpgsqlDbType.Date);
+                                    cmd.Parameters.Add("@dop_qty", NpgsqlTypes.NpgsqlDbType.Double);
+                                    cmd.Parameters.Add("@dop_made", NpgsqlTypes.NpgsqlDbType.Double);
+                                    cmd.Parameters.Add("@date_entered", NpgsqlTypes.NpgsqlDbType.Timestamp);
+                                    cmd.Parameters.Add("@chksum", NpgsqlTypes.NpgsqlDbType.Integer);
+                                    cmd.Parameters.Add("@custid", NpgsqlTypes.NpgsqlDbType.Integer);
+                                    cmd.Parameters.Add("@zest", NpgsqlTypes.NpgsqlDbType.Varchar);
+                                    cmd.Parameters.Add("@seria0", NpgsqlTypes.NpgsqlDbType.Boolean);
+                                    cmd.Parameters.Add("@data0", NpgsqlTypes.NpgsqlDbType.Date);
+                                    cmd.Parameters.Add("@id", NpgsqlTypes.NpgsqlDbType.Uuid);
+                                    cmd.Prepare();
+                                    foreach (Orders_row row in _Row_add)
+                                    {
+                                        cmd.Parameters[0].Value = row.Koor;
+                                        cmd.Parameters[1].Value = row.Order_no;
+                                        cmd.Parameters[2].Value = row.Line_no;
+                                        cmd.Parameters[3].Value = row.Rel_no;
+                                        cmd.Parameters[4].Value = row.Line_item_no;
+                                        cmd.Parameters[5].Value = row.Customer_po_line_no;
+                                        cmd.Parameters[6].Value = row.Dimmension;
+                                        cmd.Parameters[7].Value = row.Last_mail_conf;
+                                        cmd.Parameters[8].Value = row.State_conf;
+                                        cmd.Parameters[9].Value = row.Line_state;
+                                        cmd.Parameters[10].Value = row.Line_state;
+                                        cmd.Parameters[11].Value = row.Country;
+                                        cmd.Parameters[12].Value = row.Cust_no;
+                                        cmd.Parameters[13].Value = row.Zip_code;
+                                        cmd.Parameters[14].Value = row.Addr1;
+                                        cmd.Parameters[15].Value = row.Prom_date;
+                                        cmd.Parameters[16].Value = row.Prom_week;
+                                        cmd.Parameters[17].Value = row.Load_id;
+                                        cmd.Parameters[18].Value = row.Ship_date;
+                                        cmd.Parameters[19].Value = row.Part_no;
+                                        cmd.Parameters[20].Value = row.Descr;
+                                        cmd.Parameters[21].Value = row.Configuration;
+                                        cmd.Parameters[22].Value = row.Buy_qty_due;
+                                        cmd.Parameters[23].Value = row.Desired_qty;
+                                        cmd.Parameters[24].Value = row.Qty_invoiced;
+                                        cmd.Parameters[25].Value = row.Qty_shipped;
+                                        cmd.Parameters[26].Value = row.Qty_assigned;
+                                        cmd.Parameters[27].Value = row.Dop_connection_db;
+                                        cmd.Parameters[28].Value = row.Dop_id;
+                                        cmd.Parameters[28].Value = row.Dop_state;
+                                        cmd.Parameters[28].Value = row.Data_dop;
+                                        cmd.Parameters[28].Value = row.Dop_qty;
+                                        cmd.Parameters[28].Value = row.Dop_made;
+                                        cmd.Parameters[28].Value = row.Date_entered;
+                                        cmd.Parameters[28].Value = row.Chksum;
+                                        cmd.Parameters[28].Value = row.Custid;
+                                        cmd.Parameters[28].Value = row.Zest;
+                                        cmd.Parameters[28].Value = row.Seria0;
+                                        cmd.Parameters[28].Value = row.Data0;
+                                        cmd.Parameters[28].Value = row.Id;
+                                        cmd.ExecuteNonQuery();
+                                    }
+                                }
+                                _Row_add = null;
+                            }
+                            using (NpgsqlCommand cmd = new NpgsqlCommand("" +
+                                            "update public.cust_ord a " +
+                                            "SET zest=case when a.dop_connection_db = 'AUT' then " +
+                                                "case when a.line_state='Aktywowana' then " +
+                                                    "case when dop_made=0 then " +
+                                                        "case when substring(a.part_no,1,1) not in ('5','6','2') then b.zs " +
+                                                        "else null	end " +
+                                                     "else null end " +
+                                                 "else null end else null end " +
+                                                 "from " +
+                                                    "(select ZEST_ID,CASE WHEN zest>1 THEN zest_id ELSE null END as zs " +
+                                                        "from " +
+                                                        "(select a.order_no,a.line_no,b.zest,a.order_no||'_'||coalesce(a.customer_po_line_no,a.line_no)||'_'||a.prom_week ZEST_ID " +
+                                                            "from " +
+                                                            "cust_ord a " +
+                                                            "left join " +
+                                                            "(select id,count(zest) zest " +
+                                                                "from " +
+                                                                "(select order_no||'_'||coalesce(customer_po_line_no,line_no)||'_'||prom_week id,part_no zest " +
+                                                                    "from cust_ord " +
+                                                                    "where line_state!='Zarezerwowana' and dop_connection_db='AUT' and seria0=false " +
+                                                                        "and data0 is null group by order_no||'_'||coalesce(customer_po_line_no,line_no)||'_'||prom_week,part_no ) a " +
+                                                               "group by id) b " +
+                                                             "on b.id=a.order_no||'_'||coalesce(a.customer_po_line_no,a.line_no)||'_'||a.prom_week " +
+                                                         "where substring(part_no,1,1) not in ('5','6','2') ) a) b " +
+                                                     "where a.order_no||'_'||coalesce(a.customer_po_line_no,a.line_no)||'_'||a.prom_week=b.ZEST_ID", conB))
+                            {
+                                Loger.Log("Cust_ord update zest" + (DateTime.Now - start));
+                                cmd.ExecuteNonQuery();
+                            }
+                            using (NpgsqlCommand cmd = new NpgsqlCommand("" +
+                                "Delete from public.late_ord " +
+                                "where cust_id in (SELECT a.cust_id " +
+                                    "FROM public.late_ord a " +
+                                    "left join " +
+                                    "public.cust_ord b " +
+                                    "on a.cust_id=b.id " +
+                                    "where b.id is null or b.line_state='Zarezerwowana' or b.dop_qty=b.dop_made)", conB))
+                            {
+                                cmd.ExecuteNonQuery();
+                            }
+                            using (NpgsqlCommand cmd = new NpgsqlCommand("" +
+                                "Delete from public.cust_ord_history " +
+                                "where id in (SELECT a.id FROM " +
+                                "public.cust_ord_history a " +
+                                "left join " +
+                                "public.cust_ord b " +
+                                "on a.id=b.id " +
+                                "where b.id is null)", conB))
+                            {
+                                cmd.ExecuteNonQuery();
+                            }
+                            using (NpgsqlCommand cmd = new NpgsqlCommand("" +
+                                "UPDATE public.datatbles " +
+                                "SET last_modify=current_timestamp, in_progress=false,updt_errors=false " +
+                                "WHERE table_name='cust_ord'", conB))
+                            {
+                                cmd.ExecuteNonQuery();
+                            }
+                            TR_CUSTORD.Commit();
+                        }                        
+                    }
+                    Loger.Log("REaDY cust_ord " + (DateTime.Now - start));
+                }
+                GC.Collect();
+                return 0;
             }
-            catch
+            catch (Exception e)
             {
-
+                using (NpgsqlConnection conA = new NpgsqlConnection(npC))
+                {
+                    await conA.OpenAsync();
+                    using (NpgsqlCommand cmd = new NpgsqlCommand("" +
+                        "UPDATE public.datatbles " +
+                        "SET in_progress=false,updt_errors=true " +
+                        "WHERE table_name='cust_ord'", conA))
+                    {
+                        cmd.ExecuteNonQuery();
+                    }
+                    conA.Close();
+                }
+                Loger.Log("Błąd modyfikacji tabeli Cust_ord:" + e);
+                return 1;
             }
-        }
-
-
-        /// <summary>
-        /// Row Structure in Cutomer_orders table
-        /// </summary>
-        class Orders_row 
+        }         
+        class Orders_row : IEquatable<Orders_row>,IComparable<Orders_row> 
         {
             public string Koor { get; set; }
             public string Order_no { get; set; }
@@ -146,7 +895,7 @@ namespace DB_Conect
             public string Rel_no { get; set; }
             public int Line_item_no { get; set; }
             public string Customer_po_line_no { get; set; }
-            public double Dimmension { get; set; }
+            public double? Dimmension { get; set; }
             public DateTime Last_mail_conf { get; set; }
             public string State_conf { get; set; }
             public string Line_state { get; set; }
@@ -157,8 +906,8 @@ namespace DB_Conect
             public string Addr1 { get; set; }
             public DateTime Prom_date { get; set; }
             public string Prom_week { get; set; }
-            public int Load_id { get; set; }
-            public DateTime Ship_date { get; set; }
+            public int? Load_id { get; set; }
+            public DateTime? Ship_date { get; set; }
             public string Part_no { get; set; }
             public string Descr { get; set; }
             public string Configuration { get; set; }
@@ -170,16 +919,37 @@ namespace DB_Conect
             public string Dop_connection_db { get; set; }
             public int Dop_id { get; set; }
             public string Dop_state { get; set; }
-            public DateTime Data_dop { get; set; }
+            public DateTime? Data_dop { get; set; }
             public double Dop_qty { get; set; }
             public double Dop_made { get; set; }
             public DateTime Date_entered { get; set; }
             public int Chksum { get; set; }
             public int Custid { get; set; }
             public string Zest { get; set; }
-            public bool Seria0 { get; set; }
+            public bool? Seria0 { get; set; }
             public DateTime Data0 { get; set; }
             public Guid Id { get; set; }
+            /// <summary>
+            /// default Comparer by cust_id
+            /// </summary>
+            /// <param name="other"></param>
+            /// <returns></returns>
+            public int CompareTo(Orders_row other)
+            {
+                if (other==null)
+                {
+                    return 1;
+                }
+                else
+                {
+                    return this.Custid.CompareTo(other.Custid);
+                }
+            }
+            public bool Equals(Orders_row other)
+            {
+                if (other == null) return false;
+                return (this.Custid.Equals(other.Custid));
+            }
         }
     }
 }
