@@ -15,4 +15,9 @@ namespace Common
         void Srv_stop();
         DateTime Serw_run { get; }
     }
+    [InheritedExport(typeof(IRunnable))]
+    public interface IRunnable
+    {
+        void Run();
+    }
 }

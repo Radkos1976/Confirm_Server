@@ -4,13 +4,14 @@ using System.Threading.Tasks;
 using System.Collections.Generic;
 using Oracle.ManagedDataAccess.Client;
 using System.Data;
+using System.Collections;
 
 namespace DB_Conect
 {
     /// <summary>
     /// Gets informations about active customer orders and store it into Postegresql
     /// </summary> 
-    class Get_needs
+    class Get_needs : Update_pstgr_from_Ora<Get_needs.Orders_row>
     {
         static readonly string Str_oracle_conn = Oracle_conn.Connection_string;
         private readonly DateTime start = Loger.Serw_run;
@@ -32,7 +33,7 @@ namespace DB_Conect
                     conA.Close();
                 }
                 Loger.Log("START cust_ord " + (DateTime.Now - start));
-                // Utwórz połączenie z ORACLE
+                // Utwórz połączenie z ORACLE                
                 List<Orders_row> Oracust_ord = new List<Orders_row>();
                 using (OracleConnection conO = new OracleConnection(Str_oracle_conn))
                 {
@@ -862,7 +863,7 @@ namespace DB_Conect
                                 cmd.ExecuteNonQuery();
                             }
                             TR_CUSTORD.Commit();
-                        }                        
+                        }
                     }
                     Loger.Log("REaDY cust_ord " + (DateTime.Now - start));
                 }
@@ -886,8 +887,8 @@ namespace DB_Conect
                 Loger.Log("Błąd modyfikacji tabeli Cust_ord:" + e);
                 return 1;
             }
-        }         
-        class Orders_row : IEquatable<Orders_row>,IComparable<Orders_row> 
+        }
+        public class Orders_row : IEquatable<Orders_row>, IComparable<Orders_row>
         {
             public string Koor { get; set; }
             public string Order_no { get; set; }
@@ -936,7 +937,7 @@ namespace DB_Conect
             /// <returns></returns>
             public int CompareTo(Orders_row other)
             {
-                if (other==null)
+                if (other == null)
                 {
                     return 1;
                 }
@@ -950,6 +951,7 @@ namespace DB_Conect
                 if (other == null) return false;
                 return (this.Custid.Equals(other.Custid));
             }
+
         }
     }
 }

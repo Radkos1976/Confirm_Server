@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections.Generic;
 using System.Linq;
 using System.Xml.Linq;
 using Npgsql;
@@ -99,7 +100,7 @@ namespace DB_Conect
                 Loger.Log("Błąd pobrania ustawień połączenia z POSTEGRESQL: " + e);
             }
         }
-    }
+    }   
     /// <summary>
     /// Simple logger class
     /// </summary>   
@@ -197,4 +198,5 @@ namespace DB_Conect
             }
         }
     }
+
 }

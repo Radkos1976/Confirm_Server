@@ -9,7 +9,7 @@ using System.ComponentModel.Composition;
 namespace App_Logic
 {
 
-    public class Conf_serv
+    public class Conf_serv : Common.IRunnable,IDisposable
     {
         private bool isDisposed = false;
         protected void Dispose(bool disposing)
@@ -42,7 +42,8 @@ namespace App_Logic
         /// <summary>
         /// Start calculations
         /// </summary>
-        public void Run()
+        [Export]
+        void Common.IRunnable.Run() 
         {
             Loger.Srv_start();
             start = Loger.Serw_run;
@@ -51,7 +52,8 @@ namespace App_Logic
             int wy = 0;
             try
             {
-                Parallel.Invoke(srv_op, async () => run_cust = await Needs_path(), async () => main = await Supply_path());
+
+               // Parallel.Invoke(srv_op, async () => run_cust = await Needs_path(), async () => main = await Supply_path());
                 wy = run_cust + main;
             }
             catch (AggregateException e)
