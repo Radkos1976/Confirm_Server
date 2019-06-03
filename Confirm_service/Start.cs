@@ -1,33 +1,55 @@
-﻿using System.ComponentModel.Composition;
+﻿using System;
+using System.ComponentModel.Composition;
 using System.ComponentModel.Composition.Hosting;
-
+using System.Collections.Generic;
+using Common;
 
 namespace Confirm_service
 {
-    class Start
+    public class Start : IDisposable
     {
-        DirectoryCatalog dirCatalog;
-        [Import(typeof(Common.IRunnable),AllowRecomposition =true)]
-        Common.IRunnable Serv = null;
-        static void Main(string[] args)
+        private bool isDisposed = false;
+        protected virtual void Dispose(bool disposing)
         {
-            Start p = new Start();
-            p.Run();
+            if (!isDisposed)
+            {
+                if (disposing)
+                {
+                    _catalog.Dispose();
+                    _container.Dispose();
+                }
+            }
+            isDisposed = true;
         }
-        public void Run()
+        public void Dispose()
         {
-            Compose();
-            Serv.Run();
+            Dispose(true);
+            GC.SuppressFinalize(this);
         }
-        private void Compose()
+        private CompositionContainer _container;
+        private DirectoryCatalog _catalog;
+
+        [ImportMany(AllowRecomposition = true)]
+        public List<Lazy<IRunnable, IPluginInfo>> Plugins { get; set; }
+
+        public Start(string pluginFolder)
         {
-            //Notice that we are creating two catalogs and adding
-            //them to one aggregate catalog
-            dirCatalog = new DirectoryCatalog(@"C:\temp");
-            AssemblyCatalog assemblyCat = new AssemblyCatalog(System.Reflection.Assembly.GetExecutingAssembly());
-            AggregateCatalog catalog = new AggregateCatalog(assemblyCat, dirCatalog);
-            CompositionContainer container = new CompositionContainer(catalog);
-            container.ComposeParts(this);
+            _catalog = new DirectoryCatalog(pluginFolder);
+            _container = new CompositionContainer(_catalog);
+            LoadPlugins();
+        }
+
+        public void LoadPlugins()
+        {
+            try
+            {
+                _catalog.Refresh();
+                _container.ComposeParts(this);
+            }
+            catch (CompositionException compositionException)
+            {
+                Console.WriteLine(compositionException.ToString());
+            }
         }
     }
 }

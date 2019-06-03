@@ -7,17 +7,25 @@ using System.ComponentModel.Composition;
 
 namespace Common
 {
-    [InheritedExport(typeof(IDB_Loger))]
+    public interface IPluginInfo
+    {
+        string DisplayName { get; }
+        string Description { get; }
+        string Version { get; }
+    }
     public interface IDB_Loger
     {
         void Log(string txt);
         void Srv_start();
         void Srv_stop();
         DateTime Serw_run { get; }
-    }
-    [InheritedExport(typeof(IRunnable))]
+    }    
     public interface IRunnable
     {
-        void Run();
+       void Run();
+    }
+    public interface IDbOperations
+    {
+       void Update_cust_ord();
     }
 }

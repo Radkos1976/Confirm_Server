@@ -1,8 +1,11 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.ComponentModel.Composition;
 using System.Linq;
 using System.Xml.Linq;
 using Npgsql;
+using Common;
+
 namespace DB_Conect
 {  
     /// <summary>
@@ -100,16 +103,17 @@ namespace DB_Conect
                 Loger.Log("Błąd pobrania ustawień połączenia z POSTEGRESQL: " + e);
             }
         }
-    }   
+    }
     /// <summary>
     /// Simple logger class
-    /// </summary>   
-    public class Loger :Common.IDB_Loger
+    /// </summary>  
+    [Export(typeof(IDB_Loger))]
+    public class Loger : IDB_Loger
     {
         /// <summary>
         /// DateTime of Start service
         /// </summary>
-        public static DateTime Serw_run = DateTime.Now;
+        private static DateTime serw_run = DateTime.Now;
         /// <summary>
         /// String with data logs
         /// </summary>
@@ -178,25 +182,27 @@ namespace DB_Conect
                 Log("Eeee coś nie działa: " + e);
             }
         }        
-        void Common.IDB_Loger.Log(string txt)
+        void IDB_Loger.Log(string txt)
         {
             Log(txt);
         }
-        void Common.IDB_Loger.Srv_start()
+        void IDB_Loger.Srv_start()
         {
             Srv_start();
         }
-        void Common.IDB_Loger.Srv_stop()
+        void IDB_Loger.Srv_stop()
         {
             Srv_stop();
         }
-        DateTime Common.IDB_Loger.Serw_run
+        DateTime IDB_Loger.Serw_run
         {
             get
             {
                 return Serw_run;
             }
         }
+
+        public static DateTime Serw_run { get => serw_run; set => serw_run = value; }
     }
 
 }

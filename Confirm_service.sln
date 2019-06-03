@@ -11,6 +11,8 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Common", "Common\Common.csp
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "DB_Conect", "DB_Conect\DB_Conect.csproj", "{0C0CF85C-F39A-4C2E-B431-F1AC1790CC6A}"
 EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Plugins", "Plugins", "{C80423EB-FCC7-40BE-92E9-557644718DEE}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -36,6 +38,10 @@ Global
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(NestedProjects) = preSolution
+		{BC6FBE82-6FF1-42A5-A398-16861AAFB140} = {C80423EB-FCC7-40BE-92E9-557644718DEE}
+		{0C0CF85C-F39A-4C2E-B431-F1AC1790CC6A} = {C80423EB-FCC7-40BE-92E9-557644718DEE}
 	EndGlobalSection
 	GlobalSection(ExtensibilityGlobals) = postSolution
 		SolutionGuid = {2F426282-6C81-4185-9E42-14A582DA348A}
