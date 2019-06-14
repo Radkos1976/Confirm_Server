@@ -27,5 +27,5 @@ namespace Common
     public interface IDbOperations
     {
        void Update_cust_ord();
-    }
+    } 
 }

@@ -3,7 +3,7 @@ using Npgsql;
 using System.Threading.Tasks;
 using System.Collections.Generic;
 using Oracle.ManagedDataAccess.Client;
-
+using Common;
 using System.Data;
 using System.Collections;
 
@@ -14,13 +14,16 @@ namespace DB_Conect
     /// </summary>       
     class Get_needs : Update_pstgr_from_Ora<Get_needs.Orders_row>  
     {
+       
         readonly string Str_oracle_conn = Oracle_conn.Connection_string;
         private readonly DateTime start = Loger.Serw_run;       
-        readonly string npC = Postegresql_conn.Conn_set.ToString();     
-        public async Task<int> Update_cust ()
+        readonly string npC = Postegresql_conn.Conn_set.ToString();
+        public async Task<int> Update_cust()
         {
             Update_pstgr_from_Ora<Orders_row> rw = new Update_pstgr_from_Ora<Orders_row>();
-            List<Orders_row> list_ora =await rw.Get_Ora("" +
+            List<Orders_row> list_ora = new List<Orders_row>();
+            List<Orders_row> list_pstgr = new List<Orders_row>();
+            Parallel.Invoke(async () => {list_ora = await rw.Get_Ora("" +
                         "SELECT ifsapp.customer_order_api.Get_Authorize_Code(a.ORDER_NO) KOOR,a.ORDER_NO,a.LINE_NO,a.REL_NO,a.LINE_ITEM_NO,a.CUSTOMER_PO_LINE_NO," +
                         "a.C_DIMENSIONS dimmension,To_Date(c.dat,Decode(InStr(c.dat,'-'),0,'YY/MM/DD','YYYY-MM-DD'))-Delivery_Leadtime Last_Mail_CONF," +
                         "ifsapp.customer_order_api.Get_Order_Conf(a.ORDER_NO) STATe_conf,a.STATE LINE_STATE,ifsapp.customer_order_api.Get_State(a.ORDER_NO) CUST_ORDER_STATE," +
@@ -29,7 +32,7 @@ namespace DB_Conect
                         "ifsapp.customer_order_address_api.Get_Addr_1(a.ORDER_NO)||Decode(Nvl(ifsapp.customer_order_api.Get_Cust_Ref(a.ORDER_NO),''),'','','<<'||ifsapp.customer_order_api.Get_Cust_Ref(a.ORDER_NO)||'>>') ADDR1," +
                         "Promised_Delivery_Date-Delivery_Leadtime PROM_DATE,To_Char(Promised_Delivery_Date-Delivery_Leadtime,'IYYYIW') PROM_WEEK,LOAD_ID," +
                         "ifsapp.CUST_ORDER_LOAD_LIST_API.Get_Ship_Date(LOAD_ID) SHIP_DATE,nvl(a.PART_NO,a.CATALOG_NO) PART_NO," +
-                        "nvl(ifsapp.inventory_part_api.Get_Description(CONTRACT,a.PART_NO),a.CATALOG_DESC) Descr,a.CONFIGURATION_ID,a.BUY_QTY_DUE,a.DESIRED_QTY," +
+                        "nvl(ifsapp.inventory_part_api.Get_Description(CONTRACT,a.PART_NO),a.CATALOG_DESC) Descr,a.CONFIGURATION_ID CONFIGURATION,a.BUY_QTY_DUE,a.DESIRED_QTY," +
                         "a.QTY_INVOICED,a.QTY_SHIPPED,a.QTY_ASSIGNED,a.DOP_CONNECTION_DB,nvl(b.dop_id,a.Pre_Accounting_Id) dop_id," +
                         "ifsapp.dop_head_api.Get_Objstate__(b.dop_id) DOP_STATE,Nvl(ifsapp.dop_order_api.Get_Revised_Due_Date(b.DOP_ID,1),decode(a.DOP_CONNECTION_DB,NULL,a.PLANNED_DUE_DATE)) Data_dop," +
                         "b.PEGGED_QTY DOP_QTY," +
@@ -66,7 +69,10 @@ namespace DB_Conect
                                 "WHERE a.order_no=b.order_no AND SubStr(MESSAGE_TEXT,1,3)='Wys'" +
                                 "GROUP BY a.ORDER_NO,LINE_NO,REL_NO,LINE_ITEM_NO) b " +
                                 "WHERE a.HISTORY_NO=b.HI) c  " +
-                             "ON c.id=a.id");
+                             "ON c.id=a.id", "cust_ord"); list_ora.Sort(); },async () => { list_pstgr = await rw.Get_PSTGR("Select * from cust_ord", "Pstgr_ord"); list_pstgr.Sort(); });
+            Changes_List<Orders_row> tmp = rw.Changes(list_pstgr, list_ora,new[] { "id" ,"zest"}  ,"Custid","id" );
+            list_ora = null;
+            list_pstgr = null;
 
             return 0;
         }
@@ -319,7 +325,7 @@ namespace DB_Conect
                             }
                             else if (dta0 == false && dta1 == false)
                             {
-                                if (PstgrCust_ord[cust_count].Data0.Date != rek.Data0.Date)
+                               // if (PstgrCust_ord[cust_count].Data0.Date != rek.Data0.Date)
                                 {
                                     updt = true;
                                 }
@@ -409,7 +415,7 @@ namespace DB_Conect
                                     }
                                     else
                                     {
-                                        if (PstgrCust_ord[cust_count].Last_mail_conf != rek.Last_mail_conf.Date)
+                                      //  if (PstgrCust_ord[cust_count].Last_mail_conf != rek.Last_mail_conf.Date)
                                         {
                                             updt = true;
                                         }
@@ -951,7 +957,7 @@ namespace DB_Conect
             public int Line_item_no { get; set; }
             public string Customer_po_line_no { get; set; }
             public double? Dimmension { get; set; }
-            public DateTime Last_mail_conf { get; set; }
+            public DateTime? Last_mail_conf { get; set; }
             public string State_conf { get; set; }
             public string Line_state { get; set; }
             public string Cust_order_state { get; set; }
@@ -982,7 +988,7 @@ namespace DB_Conect
             public int Custid { get; set; }
             public string Zest { get; set; }
             public bool? Seria0 { get; set; }
-            public DateTime Data0 { get; set; }
+            public DateTime? Data0 { get; set; }
             public Guid Id { get; set; }
             /// <summary>
             /// default Comparer by cust_id
@@ -1005,8 +1011,6 @@ namespace DB_Conect
                 if (other == null) return false;
                 return (this.Custid.Equals(other.Custid));
             }
-
         }
-
     }
 }
