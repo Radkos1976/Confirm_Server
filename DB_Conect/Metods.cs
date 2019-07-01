@@ -280,7 +280,7 @@ namespace DB_Conect
                 {
                     if (max_old_rows > counter)
                     {
-                        while (Convert.ToInt32(Accessors[srt].GetValue(rows)) > Convert.ToInt32(Accessors[srt].GetValue(Old_list[counter])))
+                        while (Convert.ToInt64(Accessors[srt].GetValue(rows)) > Convert.ToInt64(Accessors[srt].GetValue(Old_list[counter])))
                         {
                             _operDEl.Add(Old_list[counter]);
                             counter++;
@@ -288,7 +288,7 @@ namespace DB_Conect
                         }
                         if (max_old_rows > counter)
                         {
-                            if (Convert.ToInt32(Accessors[srt].GetValue(rows)) == Convert.ToInt32(Accessors[srt].GetValue(Old_list[counter])))
+                            if (Convert.ToInt64(Accessors[srt].GetValue(rows)) == Convert.ToInt64(Accessors[srt].GetValue(Old_list[counter])))
                             {
                                 bool changed = false;
                                 int col = 0;
@@ -411,172 +411,151 @@ namespace DB_Conect
             }
             return schema;
         }
+        /// <summary>
+        /// Set changes in database table
+        /// </summary>
+        /// <param name="_list"></param>
+        /// <param name="name_table"></param>
+        /// <param name="guid_col"></param>
+        /// <returns></returns>
         public async Task<int> PSTRG_Changes_to_dataTable(Changes_List<T> _list, string name_table, string guid_col)
         {
-            Dictionary<string, int> P_columns = new Dictionary<string, int>();
-            Dictionary<int, Type> P_types = new Dictionary<int, Type>();
-            T Row = new T();
-            IPropertyAccessor[] Accessors = Row.GetType().GetProperties()
-                                     .Select(pi => PropertyInfoHelper.CreateAccessor(pi)).ToArray();
-            int counter = 0;
-            foreach (var p in Accessors)
+
+            try
             {
-                P_types.Add(counter, p.PropertyInfo.PropertyType);
-                P_columns.Add(p.PropertyInfo.Name.ToLower(), counter);
-                counter++;
-            }
-            List<Npgsql_Schema_fields> Schema = await Get_shema(name_table, P_columns);
-            using (NpgsqlConnection conO = new NpgsqlConnection(npC))
-            {
-                await conO.OpenAsync();
-                using (NpgsqlTransaction npgsqlTransaction = conO.BeginTransaction())
+                Dictionary<string, int> P_columns = new Dictionary<string, int>();
+                Dictionary<int, Type> P_types = new Dictionary<int, Type>();
+                T Row = new T();
+                IPropertyAccessor[] Accessors = Row.GetType().GetProperties()
+                                         .Select(pi => PropertyInfoHelper.CreateAccessor(pi)).ToArray();
+                int counter = 0;
+                foreach (var p in Accessors)
                 {
-                    if (_list.Delete.Count > 0)
+                    P_types.Add(counter, p.PropertyInfo.PropertyType);
+                    P_columns.Add(p.PropertyInfo.Name.ToLower(), counter);
+                    counter++;
+                }
+                List<Npgsql_Schema_fields> Schema = await Get_shema(name_table, P_columns);
+                using (NpgsqlConnection conO = new NpgsqlConnection(npC))
+                {
+                    await conO.OpenAsync();
+                    using (NpgsqlTransaction npgsqlTransaction = conO.BeginTransaction())
                     {
-                        using (NpgsqlCommand cmd = Del_npgsqlCommand(name_table, guid_col, Schema))
+                        if (_list.Delete.Count > 0)
                         {
-                            cmd.Connection = conO;
-                            foreach (T row in _list.Delete)
+                            string comand = "DELETE FROM " + name_table;
+                            string tbl_values = " WHERE ";
+                            string param_values = "=";                            
+                            using (NpgsqlCommand cmd = new NpgsqlCommand())
                             {
-                                cmd.Parameters[0].Value = Accessors[P_columns[guid_col]].GetValue(row);
-                                cmd.ExecuteNonQuery();
-                            }
-                        }
-                    }
-                    if (_list.Update.Count > 0)
-                    {
-                        using (NpgsqlCommand cmd = Mod_npgsqlCommand(name_table, guid_col, Schema))
-                        {
-                            cmd.Connection = conO;
-                            foreach (T row in _list.Delete)
-                            {
-                                foreach (Npgsql_Schema_fields _field in Schema)
+                                cmd.Connection = conO;
+                                foreach (Npgsql_Schema_fields _Fields in Schema)
                                 {
-                                    if (_field.Dtst_col != 10000)
+                                    string nam = _Fields.Field_name;
+                                    if (guid_col == nam && _Fields.Dtst_col != 10000)
                                     {
-                                        cmd.Parameters[_field.DB_Col_number].Value = Accessors[_field.Dtst_col].GetValue(row) ?? DBNull.Value;
-                                    }
-                                }                                
-                                cmd.ExecuteNonQuery();
-                            }
-                        }
-                    }
-                    if (_list.Insert.Count > 0)
-                    {
-                        using (NpgsqlCommand cmd = Ins_npgsqlCommand(name_table, Schema))
-                        {
-                            cmd.Connection = conO;
-                            foreach (T row in _list.Delete)
-                            {
-                                foreach (Npgsql_Schema_fields _field in Schema)
-                                {
-                                    if (_field.Dtst_col != 10000)
-                                    {
-                                        cmd.Parameters[_field.DB_Col_number].Value = Accessors[_field.Dtst_col].GetValue(row) ?? DBNull.Value;
+                                        tbl_values = tbl_values + nam;
+                                        param_values = "=@" + nam.ToLower();
+                                        cmd.Parameters.Add("@" + nam.ToLower(), _Fields.Field_type);
                                     }
                                 }
-                                cmd.ExecuteNonQuery();
+                                cmd.CommandText = comand + tbl_values + param_values;
+                                cmd.Prepare();
+                                foreach (T row in _list.Delete)
+                                {
+                                    cmd.Parameters[0].Value = Accessors[P_columns[guid_col]].GetValue(row);
+                                    cmd.ExecuteNonQuery();
+                                }
                             }
                         }
-                    }
-                    npgsqlTransaction.Commit();
-                }
-            }
-        }
-        /// <summary>
-        /// Create Npsql command for modify
-        /// </summary>
-        /// <param name="name_table"></param>
-        /// <param name="schema_Fields"></param>
-        /// <returns></returns>
-        private NpgsqlCommand Ins_npgsqlCommand(string name_table,  List<Npgsql_Schema_fields> schema_Fields)
-        {
-            string comand = "INSERT INTO " + name_table;
-            string tbl_values="(";
-            string param_values = " VALUES (";         
-            using (NpgsqlCommand Ins_tmp = new NpgsqlCommand())
-            {
-                foreach (Npgsql_Schema_fields _Fields in schema_Fields)
-                {
-                    string nam = _Fields.Field_name;
-                    if (_Fields.Dtst_col!=10000)
-                    {
-                        tbl_values = tbl_values + nam + ",";
-                        param_values = param_values + "@" + nam.ToLower() + ",";
-                        Ins_tmp.Parameters.Add("@" + nam.ToLower(), _Fields.Field_type);
-                    }
-                }
-                Ins_tmp.CommandText = comand + tbl_values.Substring(0, tbl_values.Length - 1) + ")" + param_values.Substring(0, param_values.Length - 1) + ")";
-                Ins_tmp.Prepare();
-                return Ins_tmp;
-            }
-        }
-        /// <summary>
-        /// Create Npsql for delete
-        /// </summary>
-        /// <param name="name_table"></param>
-        /// <param name="guid_col"></param>
-        /// <param name="schema_Fields"></param>
-        /// <returns></returns>
-        private NpgsqlCommand Del_npgsqlCommand(string name_table, string guid_col, List<Npgsql_Schema_fields> schema_Fields)
-        {
-            string comand = "DELETE FROM " + name_table;
-            string tbl_values = " WHERE ";
-            string param_values = "=";
-            using (NpgsqlCommand del_tmp = new NpgsqlCommand())
-            {
-                foreach (Npgsql_Schema_fields _Fields in schema_Fields)
-                {
-                    string nam = _Fields.Field_name;
-                    if (_Fields.Dtst_col != 10000)
-                    {
-                        tbl_values = tbl_values + nam;
-                        param_values = "@" + nam.ToLower();
-                        del_tmp.Parameters.Add("@" + nam.ToLower(), _Fields.Field_type);
-                    }
-                }
-                del_tmp.CommandText = comand + tbl_values + param_values;
-                del_tmp.Prepare();
-                return del_tmp;
-            }
-        }
-        /// <summary>
-        /// Create Npgsql command for Modify
-        /// </summary>
-        /// <param name="Row"></param>
-        /// <param name="name_table"></param>
-        /// <param name="guid_col"></param>
-        /// <returns></returns>
-        private NpgsqlCommand Mod_npgsqlCommand(string name_table, string guid_col, List<Npgsql_Schema_fields> schema_Fields)
-        {
-            string comand = "UPDATE " + name_table + " SET";
-            string tbl_values = " ";
-            string param_values = " WHERE ";
-            using (NpgsqlCommand mod_tmp = new NpgsqlCommand())
-            {
-                foreach (Npgsql_Schema_fields _Fields in schema_Fields)
-                {
-                    string nam = _Fields.Field_name;
-                    if (_Fields.Dtst_col != 10000)
-                    {
-                        if (nam.ToLower()== guid_col.ToLower())
+                        if (_list.Update.Count > 0)
                         {
-                            param_values = tbl_values + nam + "=@" + nam.ToLower();
+                            string comand = "UPDATE " + name_table + " SET";
+                            string tbl_values = " ";
+                            string param_values = " WHERE ";                            
+                            using (NpgsqlCommand cmd =new NpgsqlCommand())
+                            {
+                                cmd.Connection = conO;
+                                foreach (Npgsql_Schema_fields _Fields in Schema)
+                                {
+                                    string nam = _Fields.Field_name;
+                                    if (_Fields.Dtst_col != 10000)
+                                    {
+                                        if (nam.ToLower() == guid_col.ToLower())
+                                        {
+                                            param_values = param_values + nam + "=@" + nam.ToLower();
+                                        }
+                                        else
+                                        {
+                                            tbl_values = tbl_values + nam + "=@" + nam.ToLower() + ",";
+                                        }
+                                        cmd.Parameters.Add("@" + nam.ToLower(), _Fields.Field_type);
+                                    }
+                                }
+                                cmd.CommandText = comand + tbl_values.Substring(0, tbl_values.Length - 1) + " " + param_values;
+                                cmd.Prepare();
+                                foreach (T row in _list.Update)
+                                {
+                                    foreach (Npgsql_Schema_fields _field in Schema)
+                                    {
+                                        if (_field.Dtst_col != 10000)
+                                        {
+                                            cmd.Parameters[_field.DB_Col_number].Value = Accessors[_field.Dtst_col].GetValue(row) ?? DBNull.Value;
+                                        }
+                                    }
+                                    cmd.ExecuteNonQuery();
+                                }
+                            }
                         }
-                        else
+                        if (_list.Insert.Count > 0)
                         {
-                            tbl_values = tbl_values + nam + "=@" + nam.ToLower() + ",";
-                        }                                              
-                        mod_tmp.Parameters.Add("@" + nam.ToLower(), _Fields.Field_type);
+                            string comand = "INSERT INTO " + name_table;
+                            string tbl_values = "(";
+                            string param_values = " VALUES (";                          
+                            using (NpgsqlCommand cmd = new NpgsqlCommand())
+                            {
+                                cmd.Connection = conO;
+                                foreach (Npgsql_Schema_fields _Fields in Schema)
+                                {
+                                    string nam = _Fields.Field_name;
+                                    if (_Fields.Dtst_col != 10000)
+                                    {
+                                        tbl_values = tbl_values + nam + ",";
+                                        param_values = param_values + "@" + nam.ToLower() + ",";
+                                        cmd.Parameters.Add("@" + nam.ToLower(), _Fields.Field_type);
+                                    }
+                                }
+                                cmd.CommandText = comand + tbl_values.Substring(0, tbl_values.Length - 1) + ")" + param_values.Substring(0, param_values.Length - 1) + ")";
+                                cmd.Prepare();
+                                foreach (T row in _list.Insert)
+                                {
+                                    foreach (Npgsql_Schema_fields _field in Schema)
+                                    {
+                                        if (_field.Field_name.ToLower()==guid_col.ToLower())
+                                        {
+                                            cmd.Parameters[_field.DB_Col_number].Value = Guid.NewGuid();
+                                        }
+                                        else if (_field.Dtst_col != 10000)
+                                        {
+                                            cmd.Parameters[_field.DB_Col_number].Value = Accessors[_field.Dtst_col].GetValue(row) ?? DBNull.Value;
+                                        }
+                                    }
+                                    cmd.ExecuteNonQuery();
+                                }
+                            }
+                        }
+                        npgsqlTransaction.Commit();
                     }
                 }
-                mod_tmp.CommandText = comand + tbl_values.Substring(0, tbl_values.Length - 1) + " " + param_values;
-                mod_tmp.Prepare();
-                return mod_tmp;
+                return 0;
             }
-        }        
-    } 
-    
+            catch (Exception e)
+            {
+                Loger.Log("Error in update table" + name_table + " :" + e.StackTrace);
+                return 1;
+            }
+        }       
+     }    
     public class Npgsql_Schema_fields
     {
         public string Field_name { get; set; }
