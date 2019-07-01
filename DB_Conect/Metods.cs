@@ -445,12 +445,50 @@ namespace DB_Conect
                     }
                     if (_list.Update.Count > 0)
                     {
-
+                        using (NpgsqlCommand cmd = Mod_npgsqlCommand(name_table, guid_col, Schema))
+                        {
+                            cmd.Connection = conO;
+                            foreach (T row in _list.Delete)
+                            {
+                                foreach (Npgsql_Schema_fields _field in Schema)
+                                {
+                                    if (_field.Dtst_col != 10000)
+                                    {
+                                        cmd.Parameters[_field.DB_Col_number].Value = Accessors[_field.Dtst_col].GetValue(row) ?? DBNull.Value;
+                                    }
+                                }                                
+                                cmd.ExecuteNonQuery();
+                            }
+                        }
                     }
+                    if (_list.Insert.Count > 0)
+                    {
+                        using (NpgsqlCommand cmd = Ins_npgsqlCommand(name_table, Schema))
+                        {
+                            cmd.Connection = conO;
+                            foreach (T row in _list.Delete)
+                            {
+                                foreach (Npgsql_Schema_fields _field in Schema)
+                                {
+                                    if (_field.Dtst_col != 10000)
+                                    {
+                                        cmd.Parameters[_field.DB_Col_number].Value = Accessors[_field.Dtst_col].GetValue(row) ?? DBNull.Value;
+                                    }
+                                }
+                                cmd.ExecuteNonQuery();
+                            }
+                        }
+                    }
+                    npgsqlTransaction.Commit();
                 }
             }
         }
-        
+        /// <summary>
+        /// Create Npsql command for modify
+        /// </summary>
+        /// <param name="name_table"></param>
+        /// <param name="schema_Fields"></param>
+        /// <returns></returns>
         private NpgsqlCommand Ins_npgsqlCommand(string name_table,  List<Npgsql_Schema_fields> schema_Fields)
         {
             string comand = "INSERT INTO " + name_table;
@@ -472,7 +510,14 @@ namespace DB_Conect
                 Ins_tmp.Prepare();
                 return Ins_tmp;
             }
-        }        
+        }
+        /// <summary>
+        /// Create Npsql for delete
+        /// </summary>
+        /// <param name="name_table"></param>
+        /// <param name="guid_col"></param>
+        /// <param name="schema_Fields"></param>
+        /// <returns></returns>
         private NpgsqlCommand Del_npgsqlCommand(string name_table, string guid_col, List<Npgsql_Schema_fields> schema_Fields)
         {
             string comand = "DELETE FROM " + name_table;
@@ -529,8 +574,7 @@ namespace DB_Conect
                 mod_tmp.Prepare();
                 return mod_tmp;
             }
-        }
-        
+        }        
     } 
     
     public class Npgsql_Schema_fields
