@@ -418,7 +418,7 @@ namespace DB_Conect
         /// <param name="name_table"></param>
         /// <param name="guid_col"></param>
         /// <returns></returns>
-        public async Task<int> PSTRG_Changes_to_dataTable(Changes_List<T> _list, string name_table, string guid_col)
+        public async Task<int> PSTRG_Changes_to_dataTable(Changes_List<T> _list, string name_table, string guid_col,string[] query_before,string [] query_after)
         {
 
             try
@@ -441,6 +441,25 @@ namespace DB_Conect
                     await conO.OpenAsync();
                     using (NpgsqlTransaction npgsqlTransaction = conO.BeginTransaction())
                     {
+                        using (NpgsqlCommand cmd = new NpgsqlCommand("" +
+                       "UPDATE public.datatbles " +
+                       "SET start_update=current_timestamp, in_progress=true,updt_errors=false " +
+                       "WHERE table_name=@table_name", conO))
+                        {
+                            cmd.Parameters.Add("table_name", NpgsqlTypes.NpgsqlDbType.Varchar).Value = name_table;
+                            cmd.Prepare();
+                            cmd.ExecuteNonQuery();
+                        }
+                        if (query_before!=null)
+                        {
+                            foreach (string comm in query_before)
+                            {
+                                using (NpgsqlCommand cmd = new NpgsqlCommand(comm,conO))
+                                {
+                                    cmd.ExecuteNonQuery();
+                                }
+                            }
+                        }
                         if (_list.Delete.Count > 0)
                         {
                             string comand = "DELETE FROM " + name_table;
@@ -533,7 +552,14 @@ namespace DB_Conect
                                     {
                                         if (_field.Field_name.ToLower()==guid_col.ToLower())
                                         {
-                                            cmd.Parameters[_field.DB_Col_number].Value = Guid.NewGuid();
+                                            if (_field.Field_type == NpgsqlTypes.NpgsqlDbType.Uuid)
+                                            {
+                                                cmd.Parameters[_field.DB_Col_number].Value = Guid.NewGuid();
+                                            }
+                                            else
+                                            {
+                                                cmd.Parameters[_field.DB_Col_number].Value= Accessors[_field.Dtst_col].GetValue(row) ?? DBNull.Value;
+                                            }
                                         }
                                         else if (_field.Dtst_col != 10000)
                                         {
@@ -544,6 +570,25 @@ namespace DB_Conect
                                 }
                             }
                         }
+                        if (query_after!=null)
+                        {
+                            foreach (string comm in query_after)
+                            {
+                                using (NpgsqlCommand cmd = new NpgsqlCommand(comm, conO))
+                                {
+                                    cmd.ExecuteNonQuery();
+                                }
+                            }
+                        }
+                        using (NpgsqlCommand cmd = new NpgsqlCommand("" +
+                                                "UPDATE public.datatbles " +
+                                                "SET last_modify=current_timestamp, in_progress=false " +
+                                                "WHERE table_name=@table_name", conO))
+                        {
+                            cmd.Parameters.Add("table_name", NpgsqlTypes.NpgsqlDbType.Varchar).Value = name_table;
+                            cmd.Prepare();
+                            cmd.ExecuteNonQuery();
+                        }
                         npgsqlTransaction.Commit();
                     }
                 }
@@ -551,7 +596,20 @@ namespace DB_Conect
             }
             catch (Exception e)
             {
-                Loger.Log("Error in update table" + name_table + " :" + e.StackTrace);
+                using (NpgsqlConnection conO = new NpgsqlConnection(npC))
+                {
+                    await conO.OpenAsync();
+                    using (NpgsqlCommand cmd = new NpgsqlCommand("" +
+                                            "UPDATE public.datatbles " +
+                                            "SET in_progress=false,updt_errors=true " +
+                                            "WHERE table_name=@table_name", conO))
+                    {
+                        cmd.Parameters.Add("table_name", NpgsqlTypes.NpgsqlDbType.Varchar).Value = name_table;
+                        cmd.Prepare();
+                        cmd.ExecuteNonQuery();
+                    }
+                }
+                Loger.Log("Error in update table :" + name_table + " :" + e.StackTrace);
                 return 1;
             }
         }       
@@ -626,5 +684,12 @@ namespace DB_Conect
         }
 
         public PropertyInfo PropertyInfo { get; private set; }
+    }
+    /// <summary>
+    /// Class for report/notify steps of calculations in database
+    /// </summary>
+    public class Report
+    {
+        
     }
 }

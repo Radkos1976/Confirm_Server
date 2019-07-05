@@ -12,69 +12,124 @@ namespace DB_Conect
     /// <summary>
     /// Gets informations about active customer orders and store it into Postegresql
     /// </summary>       
-    class Get_needs : Update_pstgr_from_Ora<Get_needs.Orders_row>  
+    public class Get_needs : Update_pstgr_from_Ora<Get_needs.Orders_row>  
     {
        
         readonly string Str_oracle_conn = Oracle_conn.Connection_string;
         private readonly DateTime start = Loger.Serw_run;       
         readonly string npC = Postegresql_conn.Conn_set.ToString();
+        /// <summary>
+        /// Update customer order table
+        /// </summary>
+        /// <returns></returns>
         public async Task<int> Update_cust()
         {
-            Update_pstgr_from_Ora<Orders_row> rw = new Update_pstgr_from_Ora<Orders_row>();
-            List<Orders_row> list_ora = new List<Orders_row>();
-            List<Orders_row> list_pstgr = new List<Orders_row>();
-            Parallel.Invoke(async () => {list_ora = await rw.Get_Ora("" +
-                        "SELECT ifsapp.customer_order_api.Get_Authorize_Code(a.ORDER_NO) KOOR,a.ORDER_NO,a.LINE_NO,a.REL_NO,a.LINE_ITEM_NO,a.CUSTOMER_PO_LINE_NO," +
-                        "a.C_DIMENSIONS dimmension,To_Date(c.dat,Decode(InStr(c.dat,'-'),0,'YY/MM/DD','YYYY-MM-DD'))-Delivery_Leadtime Last_Mail_CONF," +
-                        "ifsapp.customer_order_api.Get_Order_Conf(a.ORDER_NO) STATe_conf,a.STATE LINE_STATE,ifsapp.customer_order_api.Get_State(a.ORDER_NO) CUST_ORDER_STATE," +
-                        "ifsapp.customer_order_api.Get_Country_Code(a.ORDER_NO) Country,ifsapp.customer_order_api.Get_Customer_No(a.ORDER_NO) CUST_no," +
-                        "ifsapp.customer_order_address_api.Get_Zip_Code(a.ORDER_NO) ZIP_CODE," +
-                        "ifsapp.customer_order_address_api.Get_Addr_1(a.ORDER_NO)||Decode(Nvl(ifsapp.customer_order_api.Get_Cust_Ref(a.ORDER_NO),''),'','','<<'||ifsapp.customer_order_api.Get_Cust_Ref(a.ORDER_NO)||'>>') ADDR1," +
-                        "Promised_Delivery_Date-Delivery_Leadtime PROM_DATE,To_Char(Promised_Delivery_Date-Delivery_Leadtime,'IYYYIW') PROM_WEEK,LOAD_ID," +
-                        "ifsapp.CUST_ORDER_LOAD_LIST_API.Get_Ship_Date(LOAD_ID) SHIP_DATE,nvl(a.PART_NO,a.CATALOG_NO) PART_NO," +
-                        "nvl(ifsapp.inventory_part_api.Get_Description(CONTRACT,a.PART_NO),a.CATALOG_DESC) Descr,a.CONFIGURATION_ID CONFIGURATION,a.BUY_QTY_DUE,a.DESIRED_QTY," +
-                        "a.QTY_INVOICED,a.QTY_SHIPPED,a.QTY_ASSIGNED,a.DOP_CONNECTION_DB,nvl(b.dop_id,a.Pre_Accounting_Id) dop_id," +
-                        "ifsapp.dop_head_api.Get_Objstate__(b.dop_id) DOP_STATE,Nvl(ifsapp.dop_order_api.Get_Revised_Due_Date(b.DOP_ID,1),decode(a.DOP_CONNECTION_DB,NULL,a.PLANNED_DUE_DATE)) Data_dop," +
-                        "b.PEGGED_QTY DOP_QTY," +
-                        "Decode(b.QTY_DELIVERED,0,Decode(instr(nvl(ifsapp.dop_head_api.get_C_Trolley_Id(b.dop_id),' '),'-'),0,0," +
-                            "Decode(Nvl(LENGTH(TRIM(TRANSLATE(SubStr(ifsapp.dop_head_api.get_C_Trolley_Id(b.dop_id)," +
-                                "instr(ifsapp.dop_head_api.get_C_Trolley_Id(b.dop_id),'-')+1), ' +-.0123456789',' '))),1000),1000,b.PEGGED_QTY,0)),b.QTY_DELIVERED) DOP_MADE," +
-                        "Nvl(b.CREATE_DATE,decode(a.DOP_CONNECTION_DB,NULL,a.DATE_ENTERED)) DATE_ENTERED," +
-                        "owa_opt_lock.checksum(a.OBJVERSION||b.OBJVERSION||nvl(b.dop_id,a.Pre_Accounting_Id)||ifsapp.customer_order_api.Get_Authorize_Code(a.ORDER_NO)||c.dat||" +
-                            "ifsapp.customer_order_api.Get_Order_Conf(a.ORDER_NO)||ifsapp.customer_order_api.Get_State(a.ORDER_NO)||ifsapp.customer_order_address_api.Get_Zip_Code(a.ORDER_NO)||" +
-                            "ifsapp.customer_order_address_api.Get_Addr_1(a.ORDER_NO)||Decode(Nvl(ifsapp.customer_order_api.Get_Cust_Ref(a.ORDER_NO),''),'','','<<'||" +
-                            "ifsapp.customer_order_api.Get_Cust_Ref(a.ORDER_NO)||'>>')||load_id||ifsapp.CUST_ORDER_LOAD_LIST_API.Get_Ship_Date(LOAD_ID)||ifsapp.dop_head_api.Get_Objstate__(b.dop_id)||" +
-                            "Decode(b.QTY_DELIVERED,0,Decode(instr(nvl(ifsapp.dop_head_api.get_C_Trolley_Id(b.dop_id),' '),'-'),0,0,b.PEGGED_QTY),b.QTY_DELIVERED)||" +
-                            "ifsapp.dop_order_api.Get_Revised_Due_Date(b.DOP_ID,1)) chksum," +
-                         "a.Pre_Accounting_Id custID,null zest,ifsapp.C_Customer_Order_Line_Api.Get_C_Lot0_Flag_Db(a.ORDER_NO,a.LINE_NO,a.REL_NO,a.LINE_ITEM_NO) Seria0," +
-                         "ifsapp.C_Customer_Order_Line_Api.Get_C_Lot0_Date(a.ORDER_NO,a.LINE_NO,a.REL_NO,a.LINE_ITEM_NO) Data0,current_timestamp objversion " +
-                         "FROM " +
-                            "(SELECT a.ORDER_NO||'_'||a.LINE_NO||'_'||a.REL_NO||'_'||a.LINE_ITEM_NO ID,a.* " +
-                            "from  " +
-                                "ifsapp.customer_order_line a " +
-                            "WHERE  a.OBJSTATE NOT IN ('Invoiced','Cancelled','Delivered') ) a " +
-                            "left JOIN " +
-                            "ifsapp.dop_demand_cust_ord b " +
-                            "ON b.ORDER_NO||'_'||b.LINE_NO||'_'||b.REL_NO||'_'||b.LINE_ITEM_NO=a.id " +
-                            "left JOIN " +
-                            "(SELECT a.ORDER_NO||'_'||a.LINE_NO||'_'||a.REL_NO||'_'||a.LINE_ITEM_NO id," +
-                            "SubStr(Decode(SubStr(a.MESSAGE_TEXT,-1,1),']',a.MESSAGE_TEXT,a.MESSAGE_TEXT||']'),Decode(InStr(a.message_text,'/',-10,2),0,-11,-9)," +
-                                    "Decode(InStr(a.message_text,'/',-10,2),0,10,8)) DAT " +
-                            "FROM " +
-                                "ifsapp.customer_order_line_hist a," +
-                                "(SELECT Max(HISTORY_NO) hi,a.ORDER_NO,LINE_NO,REL_NO,LINE_ITEM_NO  " +
-                                "FROM " +
-                                    "ifsapp.customer_order_line_hist a," +
-                                    "(SELECT order_no FROM ifsapp.customer_order where OBJSTATE NOT IN ('Invoiced','Cancelled','Delivered'))b  " +
-                                "WHERE a.order_no=b.order_no AND SubStr(MESSAGE_TEXT,1,3)='Wys'" +
-                                "GROUP BY a.ORDER_NO,LINE_NO,REL_NO,LINE_ITEM_NO) b " +
-                                "WHERE a.HISTORY_NO=b.HI) c  " +
-                             "ON c.id=a.id", "cust_ord"); list_ora.Sort(); },async () => { list_pstgr = await rw.Get_PSTGR("Select * from cust_ord", "Pstgr_ord"); list_pstgr.Sort(); });
-            Changes_List<Orders_row> tmp = rw.Changes(list_pstgr, list_ora,new[] { "id" ,"zest" ,"objversion"}  ,"Custid","id" );
-            list_ora = null;
-            list_pstgr = null;
-            int i = await PSTRG_Changes_to_dataTable(tmp, "cust_ord", "id");
-            return 0;
+            try
+            {
+                Update_pstgr_from_Ora<Orders_row> rw = new Update_pstgr_from_Ora<Orders_row>();
+                List<Orders_row> list_ora = new List<Orders_row>();
+                List<Orders_row> list_pstgr = new List<Orders_row>();
+                Parallel.Invoke(async () =>
+                {
+                    list_ora = await rw.Get_Ora("" +
+   "SELECT ifsapp.customer_order_api.Get_Authorize_Code(a.ORDER_NO) KOOR,a.ORDER_NO,a.LINE_NO,a.REL_NO,a.LINE_ITEM_NO,a.CUSTOMER_PO_LINE_NO," +
+   "a.C_DIMENSIONS dimmension,To_Date(c.dat,Decode(InStr(c.dat,'-'),0,'YY/MM/DD','YYYY-MM-DD'))-Delivery_Leadtime Last_Mail_CONF," +
+   "ifsapp.customer_order_api.Get_Order_Conf(a.ORDER_NO) STATe_conf,a.STATE LINE_STATE,ifsapp.customer_order_api.Get_State(a.ORDER_NO) CUST_ORDER_STATE," +
+   "ifsapp.customer_order_api.Get_Country_Code(a.ORDER_NO) Country,ifsapp.customer_order_api.Get_Customer_No(a.ORDER_NO) CUST_no," +
+   "ifsapp.customer_order_address_api.Get_Zip_Code(a.ORDER_NO) ZIP_CODE," +
+   "ifsapp.customer_order_address_api.Get_Addr_1(a.ORDER_NO)||Decode(Nvl(ifsapp.customer_order_api.Get_Cust_Ref(a.ORDER_NO),''),'','','<<'||ifsapp.customer_order_api.Get_Cust_Ref(a.ORDER_NO)||'>>') ADDR1," +
+   "Promised_Delivery_Date-Delivery_Leadtime PROM_DATE,To_Char(Promised_Delivery_Date-Delivery_Leadtime,'IYYYIW') PROM_WEEK,LOAD_ID," +
+   "ifsapp.CUST_ORDER_LOAD_LIST_API.Get_Ship_Date(LOAD_ID) SHIP_DATE,nvl(a.PART_NO,a.CATALOG_NO) PART_NO," +
+   "nvl(ifsapp.inventory_part_api.Get_Description(CONTRACT,a.PART_NO),a.CATALOG_DESC) Descr,a.CONFIGURATION_ID CONFIGURATION,a.BUY_QTY_DUE,a.DESIRED_QTY," +
+   "a.QTY_INVOICED,a.QTY_SHIPPED,a.QTY_ASSIGNED,a.DOP_CONNECTION_DB,nvl(b.dop_id,a.Pre_Accounting_Id) dop_id," +
+   "ifsapp.dop_head_api.Get_Objstate__(b.dop_id) DOP_STATE,Nvl(ifsapp.dop_order_api.Get_Revised_Due_Date(b.DOP_ID,1),decode(a.DOP_CONNECTION_DB,NULL,a.PLANNED_DUE_DATE)) Data_dop," +
+   "b.PEGGED_QTY DOP_QTY," +
+   "Decode(b.QTY_DELIVERED,0,Decode(instr(nvl(ifsapp.dop_head_api.get_C_Trolley_Id(b.dop_id),' '),'-'),0,0," +
+       "Decode(Nvl(LENGTH(TRIM(TRANSLATE(SubStr(ifsapp.dop_head_api.get_C_Trolley_Id(b.dop_id)," +
+           "instr(ifsapp.dop_head_api.get_C_Trolley_Id(b.dop_id),'-')+1), ' +-.0123456789',' '))),1000),1000,b.PEGGED_QTY,0)),b.QTY_DELIVERED) DOP_MADE," +
+   "Nvl(b.CREATE_DATE,decode(a.DOP_CONNECTION_DB,NULL,a.DATE_ENTERED)) DATE_ENTERED," +
+   "owa_opt_lock.checksum(a.OBJVERSION||b.OBJVERSION||nvl(b.dop_id,a.Pre_Accounting_Id)||ifsapp.customer_order_api.Get_Authorize_Code(a.ORDER_NO)||c.dat||" +
+       "ifsapp.customer_order_api.Get_Order_Conf(a.ORDER_NO)||ifsapp.customer_order_api.Get_State(a.ORDER_NO)||ifsapp.customer_order_address_api.Get_Zip_Code(a.ORDER_NO)||" +
+       "ifsapp.customer_order_address_api.Get_Addr_1(a.ORDER_NO)||Decode(Nvl(ifsapp.customer_order_api.Get_Cust_Ref(a.ORDER_NO),''),'','','<<'||" +
+       "ifsapp.customer_order_api.Get_Cust_Ref(a.ORDER_NO)||'>>')||load_id||ifsapp.CUST_ORDER_LOAD_LIST_API.Get_Ship_Date(LOAD_ID)||ifsapp.dop_head_api.Get_Objstate__(b.dop_id)||" +
+       "Decode(b.QTY_DELIVERED,0,Decode(instr(nvl(ifsapp.dop_head_api.get_C_Trolley_Id(b.dop_id),' '),'-'),0,0,b.PEGGED_QTY),b.QTY_DELIVERED)||" +
+       "ifsapp.dop_order_api.Get_Revised_Due_Date(b.DOP_ID,1)) chksum," +
+    "a.Pre_Accounting_Id custID,null zest,ifsapp.C_Customer_Order_Line_Api.Get_C_Lot0_Flag_Db(a.ORDER_NO,a.LINE_NO,a.REL_NO,a.LINE_ITEM_NO) Seria0," +
+    "ifsapp.C_Customer_Order_Line_Api.Get_C_Lot0_Date(a.ORDER_NO,a.LINE_NO,a.REL_NO,a.LINE_ITEM_NO) Data0,current_timestamp objversion " +
+    "FROM " +
+       "(SELECT a.ORDER_NO||'_'||a.LINE_NO||'_'||a.REL_NO||'_'||a.LINE_ITEM_NO ID,a.* " +
+       "from  " +
+           "ifsapp.customer_order_line a " +
+       "WHERE  a.OBJSTATE NOT IN ('Invoiced','Cancelled','Delivered') ) a " +
+       "left JOIN " +
+       "ifsapp.dop_demand_cust_ord b " +
+       "ON b.ORDER_NO||'_'||b.LINE_NO||'_'||b.REL_NO||'_'||b.LINE_ITEM_NO=a.id " +
+       "left JOIN " +
+       "(SELECT a.ORDER_NO||'_'||a.LINE_NO||'_'||a.REL_NO||'_'||a.LINE_ITEM_NO id," +
+       "SubStr(Decode(SubStr(a.MESSAGE_TEXT,-1,1),']',a.MESSAGE_TEXT,a.MESSAGE_TEXT||']'),Decode(InStr(a.message_text,'/',-10,2),0,-11,-9)," +
+               "Decode(InStr(a.message_text,'/',-10,2),0,10,8)) DAT " +
+       "FROM " +
+           "ifsapp.customer_order_line_hist a," +
+           "(SELECT Max(HISTORY_NO) hi,a.ORDER_NO,LINE_NO,REL_NO,LINE_ITEM_NO  " +
+           "FROM " +
+               "ifsapp.customer_order_line_hist a," +
+               "(SELECT order_no FROM ifsapp.customer_order where OBJSTATE NOT IN ('Invoiced','Cancelled','Delivered'))b  " +
+           "WHERE a.order_no=b.order_no AND SubStr(MESSAGE_TEXT,1,3)='Wys'" +
+           "GROUP BY a.ORDER_NO,LINE_NO,REL_NO,LINE_ITEM_NO) b " +
+           "WHERE a.HISTORY_NO=b.HI) c  " +
+        "ON c.id=a.id", "ORA_cust_ord"); list_ora.Sort();
+                }, async () => { list_pstgr = await rw.Get_PSTGR("Select * from cust_ord", "Pstgr_cust_ord"); list_pstgr.Sort(); });
+                Changes_List<Orders_row> tmp = rw.Changes(list_pstgr, list_ora, new[] { "id", "zest", "objversion" }, "Custid", "id");
+                list_ora = null;
+                list_pstgr = null;
+                return await PSTRG_Changes_to_dataTable(tmp, "cust_ord", "id",null,new[] {
+                    "update public.cust_ord a " +
+                    "SET zest=case when a.dop_connection_db = 'AUT' then " +
+                     "case when a.line_state='Aktywowana' then " +
+                         "case when dop_made=0 then " +
+                            "case when substring(a.part_no,1,1) not in ('5','6','2') " +
+                            "then b.zs " +
+                            "else null	end " +
+                          "else null end " +
+                     "else null end else null end " +
+                     "from " +
+                     "(select ZEST_ID,CASE WHEN zest>1 THEN zest_id ELSE null END as zs " +
+                        "from " +
+                           "(select a.order_no,a.line_no,b.zest,a.order_no||'_'||coalesce(a.customer_po_line_no,a.line_no)||'_'||a.prom_week ZEST_ID " +
+                              "from " +
+                                 "cust_ord a " +
+                                  "left join " +
+                                  "(select id,count(zest) zest " +
+                                      "from " +
+                                         "(select order_no||'_'||coalesce(customer_po_line_no,line_no)||'_'||prom_week id,part_no zest " +
+                                           "from cust_ord " +
+                                     "where line_state!='Zarezerwowana' and dop_connection_db='AUT' and seria0=false " +
+                                     "and data0 is null group by order_no||'_'||coalesce(customer_po_line_no,line_no)||'_'||prom_week,part_no ) a " +
+                                  "group by id) b " +
+                                  "on b.id=a.order_no||'_'||coalesce(a.customer_po_line_no,a.line_no)||'_'||a.prom_week " +
+                             "where substring(part_no,1,1) not in ('5','6','2') ) a) b " +
+                      "where a.order_no||'_'||coalesce(a.customer_po_line_no,a.line_no)||'_'||a.prom_week=b.ZEST_ID",
+                    "Delete from public.late_ord " +
+                         "where cust_id in (SELECT a.cust_id " +
+                            "FROM public.late_ord a " +
+                                 "left join " +
+                                 "public.cust_ord b " +
+                                 "on a.cust_id=b.id " +
+                               "where b.id is null or b.line_state='Zarezerwowana' or b.dop_qty=b.dop_made)",
+                    "Delete from public.cust_ord_history " +
+                         "where id in " +
+                                "(SELECT a.id FROM " +
+                                    "public.cust_ord_history a " +
+                                    "left join " +
+                                    "public.cust_ord b " +
+                                     "on a.id=b.id " +
+                                     "where b.id is null)"});
+            }
+            catch(Exception e)
+            {
+                Loger.Log("Błąd importu zamówień klienta:" + e);
+                return 1;
+            }
         }
         public class Orders_row : IEquatable<Orders_row>, IComparable<Orders_row>
         {
@@ -142,11 +197,92 @@ namespace DB_Conect
             }
         }
     }
-    class Capacity : Update_pstgr_from_Ora<>
+    /// <summary>
+    /// Get data about CRP in IFS
+    /// </summary>
+    class Capacity : Update_pstgr_from_Ora<Capacity.Crp>
     {
         readonly string Str_oracle_conn = Oracle_conn.Connection_string;
         private readonly DateTime start = Loger.Serw_run;
         readonly string npC = Postegresql_conn.Conn_set.ToString();
-
+        public async Task<int> Update_capacity_table()
+        {
+            try
+            {
+                Update_pstgr_from_Ora<Crp> rw = new Update_pstgr_from_Ora<Crp>();
+                List<Crp> list_ora = new List<Crp>();
+                List<Crp> list_pstgr = new List<Crp>();
+                Parallel.Invoke(async () =>
+                {
+                    list_ora = await rw.Get_Ora("" +
+"select To_Number(a.COUNTER||a.NOTE_ID) id, a.work_day,a.department_no,a.work_center_no,SUM(IFSAPP.Work_Center_Capacity_API.Get_Wc_Capac_Workday__('ST' , a.work_center_no, a.work_day)) capacity," +
+"SUM(IFSAPP.Mach_Operation_Load_Util_API.Planned_Load(A.work_day,'ST',a.work_center_no)) planned,SUM(IFSAPP.Mach_Operation_Load_Util_API.Released_Load(A.work_day,'ST',a.work_center_no)) relased," +
+"Nvl(Sum(c.godz),0) dop " +
+"FROM " +
+    "(SELECT a.COUNTER,a.work_day,b.department_no,b.work_center_no,b.NOTE_ID " +
+    "FROM " +
+         "IFSAPP.work_time_calendar_pub A," +
+         "IFSAPP.work_center B " +
+     "WHERE A.work_day between SYSDATE-10 and SYSDATE+128 and A.calendar_id = IFSAPP.Work_Center_API.Get_Calendar_Id( B.contract, B.work_center_no ) and B.contract = 'ST' ) a " +
+ "left JOIN " +
+    "(SELECT  b.dat,ifsapp.work_center_api.Get_Department_No ('ST',b.WORK_CENTER_NO) wydz,b.WORK_CENTER_NO,Sum(b.godz) godz " +
+     "from " +
+        "(SELECT DOP_ID " +
+            "FROM ifsapp.dop_head " +
+            "WHERE OBJSTATE IN ('Unreleased','Netted')) a ," +
+        "(SELECT DOP_ID,DOP_ORDER_ID,WORK_CENTER_NO,ifsapp.dop_order_api.Get_Revised_Due_Date(DOP_ID,DOP_ORDER_ID) dat, Sum(MACH_RUN_FACTOR) godz " +
+            "FROM ifsapp.dop_order_operation " +
+            "WHERE ifsapp.dop_head_api.Get_Status(DOP_id) IN ('Unreleased','Netted') " +
+            "GROUP BY  DOP_ID,DOP_ORDER_ID,WORK_CENTER_NO,ifsapp.dop_order_api.Get_Revised_Due_Date(DOP_ID,DOP_ORDER_ID)) b " +
+     "WHERE b.DOP_ID=a.DOP_ID " +
+     "GROUP BY b.dat,ifsapp.work_center_api.Get_Department_No ('ST',b.WORK_CENTER_NO),b.WORK_CENTER_NO ORDER BY dat,wydz,work_center_no) c  " +
+"ON c.dat=a.work_day AND C.work_center_no=a.work_center_no " +
+"group by a.COUNTER,a.work_day,a.department_no,a.work_center_no,a.NOTE_ID " +
+"ORDER BY To_Number(a.COUNTER||a.NOTE_ID)", "ORA_CRP");
+                    list_ora.Sort();
+                }, async () => { list_pstgr = await rw.Get_PSTGR("Select * from \"CRP\"", "Pstgr_CRP"); list_pstgr.Sort(); });
+                Changes_List<Crp> tmp = rw.Changes(list_pstgr, list_ora, new[] { "id" }, "id", "id");
+                list_ora = null;
+                list_pstgr = null;
+                return await PSTRG_Changes_to_dataTable(tmp, "\"CRP\"", "id",null,null);
+            }
+            catch (Exception e)
+            {
+                Loger.Log("Błąd importu CRP:" + e);
+                return 1;
+            }
+        }
+        public class Crp : IEquatable<Crp>, IComparable<Crp>
+        {
+            public long Id { get; set; }
+            public DateTime  Work_day { get; set; }
+            public string Department_no { get; set; }
+            public string Work_center_no { get; set; }
+            public double Capacity { get; set; }
+            public double Planned { get; set; }
+            public double Relased { get; set; }
+            public double Dop { get; set; }
+            /// <summary>
+            /// default Comparer by id
+            /// </summary>
+            /// <param name="other"></param>
+            /// <returns></returns>
+            public int CompareTo(Crp other)
+            {
+                if (other == null)
+                {
+                    return 1;
+                }
+                else
+                {
+                    return this.Id.CompareTo(other.Id);
+                }
+            }
+            public bool Equals(Crp other)
+            {
+                if (other == null) return false;
+                return (this.Id.Equals(other.Id));
+            }
+        }
     }
 }
