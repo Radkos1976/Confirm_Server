@@ -14,7 +14,7 @@ namespace DB_Conect
         public void Update_cust_ord()
         {
             int a = 0;
-            Get_needs get = new Get_needs();
+            Get_Cust_orders get = new Get_Cust_orders();
             Parallel.Invoke(async () => a = await get.Update_cust());           
         }
 

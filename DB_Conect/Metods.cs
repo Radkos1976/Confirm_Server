@@ -8,6 +8,7 @@ using System.Reflection;
 using System.Collections.Concurrent;
 using System.Data;
 
+
 namespace DB_Conect
 {
     /// <summary>
@@ -54,6 +55,100 @@ namespace DB_Conect
         static readonly string Str_oracle_conn = Oracle_conn.Connection_string;
         private readonly DateTime start = Loger.Serw_run;
         readonly string npC = Postegresql_conn.Conn_set.ToString();
+        /// <summary>
+        /// Get datasets from ORACLE - use this override when columns in query and in class T is same and create prepared parameters 
+        /// </summary>
+        public async Task<List<T>> Get_Ora(string Sql_ora, string Task_name,List<object> parameters, List<object> param_types)
+        {
+            Dictionary<string, int> D_columns = new Dictionary<string, int>();
+            Dictionary<int, string> P_columns = new Dictionary<int, string>();
+            Dictionary<int, Type> P_types = new Dictionary<int, Type>();
+            T Row = new T();
+            IPropertyAccessor[] Accessors = Row.GetType().GetProperties()
+                                     .Select(pi => PropertyInfoHelper.CreateAccessor(pi)).ToArray();
+            int counter = 0;
+            foreach (var p in Accessors)
+            {
+                P_types.Add(counter, p.PropertyInfo.PropertyType);
+                P_columns.Add(counter, p.PropertyInfo.Name.ToLower());
+                counter++;
+            }
+            return await Get_Ora(Sql_ora, Task_name, D_columns, P_columns, P_types, parameters,param_types);
+        }
+        /// <summary>
+        /// Get datasets from ORACLE - use this override when columns in query and in class T is diferent and use prepared parameters 
+        /// </summary>
+        /// <param name="Sql_ora"></param>
+        /// <param name="Task_name"></param>
+        /// <param name="D_columns"></param>
+        /// <param name="P_columns"></param>
+        /// <returns></returns>
+        public async Task<List<T>> Get_Ora(string Sql_ora, string Task_name, Dictionary<string, int> D_columns, Dictionary<int, string> P_columns, Dictionary<int, Type> P_types,List<object> parameters,List<object> param_types)
+        {
+            List<T> Rows = new List<T>();
+            try
+            {
+                using (OracleConnection conO = new OracleConnection(Str_oracle_conn))
+                {
+                    await conO.OpenAsync();
+                    OracleGlobalization info = conO.GetSessionInfo();
+                    info.DateFormat = "YYYY-MM-DD";
+                    conO.SetSessionInfo(info);
+                    bool list_columns = false;
+                    T Row = new T();
+                    IPropertyAccessor[] Accessors = Row.GetType().GetProperties()
+                                    .Select(pi => PropertyInfoHelper.CreateAccessor(pi)).ToArray();
+                    using (OracleCommand cust = new OracleCommand(Sql_ora, conO))
+                    {   
+                       
+                        using (OracleDataReader reader = cust.ExecuteReader())
+                        {
+                            reader.FetchSize = cust.RowSize * 200;
+                            while (await reader.ReadAsync())
+                            {
+                                if (!list_columns)
+                                {
+                                    if (D_columns.Count == 0)
+                                    {
+                                        for (int col = 0; col < reader.FieldCount; col++)
+                                        {
+                                            string nam = reader.GetName(col).ToLower();
+                                            D_columns.Add(nam, col);
+                                        }
+                                    }
+                                    list_columns = true;
+                                }
+                                Row = new T();
+                                int counter = 0;
+                                foreach (var Accessor in Accessors)
+                                {
+                                    string metod = P_columns[counter];
+                                    if (D_columns.ContainsKey(metod))
+                                    {
+                                        int col = D_columns[metod];
+                                        object readData = reader.GetValue(D_columns[metod]);
+                                        if (readData != System.DBNull.Value)
+                                        {
+                                            Type pt = P_types[counter];
+                                            Accessor.SetValue(Row, Convert.ChangeType(readData, Nullable.GetUnderlyingType(pt) ?? pt, null));
+                                        }
+                                    }
+                                    counter++;
+                                }
+                                Rows.Add(Row);
+                            }
+                        }
+                    }
+                }
+                Rows.Sort();
+                return Rows;
+            }
+            catch (Exception e)
+            {
+                Loger.Log("Błąd modyfikacji tabeli:" + Task_name + e);
+                return Rows;
+            }
+        }
         /// <summary>
         /// Get datasets from ORACLE - use this override when columns in query and in class T is diferent  
         /// </summary>

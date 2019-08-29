@@ -67,9 +67,11 @@
     <Reference Include="System.Xml" />
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="Capacity.cs" />
     <Compile Include="DB.cs" />
-    <Compile Include="Get_needs.cs" />
+    <Compile Include="Get_Cust_orders.cs" />
     <Compile Include="Metods.cs" />
+    <Compile Include="Prod_Calendar.cs" />
     <Compile Include="Settings.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
   </ItemGroup>
