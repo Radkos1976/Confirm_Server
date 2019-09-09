@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Dynamic;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
@@ -12,25 +13,37 @@ namespace DB_Conect
         /// Update table with Calendar Days
         /// </summary>
         /// <returns></returns>
-        public async Task<int> Update_calendar_table()
+        public async Task<int> Update_calendar_table(string calendar_id)
         {
             try
             {
-                Update_pstgr_from_Ora<Calendar> rw = new Update_pstgr_from_Ora<Calendar>();
-                List<Calendar> list_ora = new List<Calendar>();
-                List<Calendar> list_pstgr = new List<Calendar>();
-                Parallel.Invoke(async () =>
+                if (calendar_id != "")
                 {
-                    list_ora = await rw.Get_Ora("" +
-"SELECT calendar_id, counter, to_date(work_day) work_day, day_type, working_time, working_periods, objid, objversion " +
-       "FROM ifsapp.work_time_counter " +
-    "WHERE CALENDAR_ID='SITS' ", "Calendar_ORA");
-                    list_ora.Sort();
-                }, async () => { list_pstgr = await rw.Get_PSTGR("Select * from work_cal WHERE CALENDAR_ID='SITS' order by counter", "Calendar_Pstgr"); list_pstgr.Sort(); });
-                Changes_List<Calendar> tmp = rw.Changes(list_pstgr, list_ora, new[] { "id" }, "id", "id");
-                list_ora = null;
-                list_pstgr = null;
-                return await PSTRG_Changes_to_dataTable(tmp, "work_cal", "id", null, null);
+                    Update_pstgr_from_Ora<Calendar> rw = new Update_pstgr_from_Ora<Calendar>();
+                    List<Calendar> list_ora = new List<Calendar>();
+                    List<Calendar> list_pstgr = new List<Calendar>();
+
+                    var dataObject = new ExpandoObject() as IDictionary<string, Object>;
+
+                    ORA_parameters Command_prepare = new ORA_parameters();
+
+                    Parallel.Invoke(async () =>
+                    {
+                        list_ora = await rw.Get_Ora("" +
+    "SELECT calendar_id, counter, to_date(work_day) work_day, day_type, working_time, working_periods, objid, objversion " +
+           "FROM ifsapp.work_time_counter " +
+        "WHERE CALENDAR_ID='SITS' ", "Calendar_ORA");
+                        list_ora.Sort();
+                    }, async () => { list_pstgr = await rw.Get_PSTGR("Select * from work_cal WHERE CALENDAR_ID='SITS' order by counter", "Calendar_Pstgr"); list_pstgr.Sort(); });
+                    Changes_List<Calendar> tmp = rw.Changes(list_pstgr, list_ora, new[] { "id" }, "id", "id");
+                    list_ora = null;
+                    list_pstgr = null;
+                    return await PSTRG_Changes_to_dataTable(tmp, "work_cal", "id", null, null);
+                }
+                else
+                {
+                    throw new Exception("Service Calendar not set in settings.xml file ");
+                }
             }
             catch (Exception e)
             {
@@ -48,6 +61,7 @@ namespace DB_Conect
             public int Working_peirods { get; set; }
             public string Objid { get; set; }
             public string Objversion { get; set; }
+
             public int CompareTo(Calendar other)
             {
                 if (other == null)
@@ -66,6 +80,10 @@ namespace DB_Conect
             {
                 if (other == null) return false;
                 return (Calendar_id.Equals(other.Calendar_id) && Counter.Equals(other.Counter));
+            }
+            public override int GetHashCode()
+            {
+                return Calendar_id.GetHashCode() + Counter;
             }
         }
     }

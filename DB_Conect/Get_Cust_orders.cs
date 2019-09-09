@@ -188,7 +188,7 @@ namespace DB_Conect
             {
                 if (other == null) return false;
                 return (this.Custid.Equals(other.Custid));
-            }
+            } 
         }
     } 
 }

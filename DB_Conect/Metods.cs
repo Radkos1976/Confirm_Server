@@ -58,7 +58,7 @@ namespace DB_Conect
         /// <summary>
         /// Get datasets from ORACLE - use this override when columns in query and in class T is same and create prepared parameters 
         /// </summary>
-        public async Task<List<T>> Get_Ora(string Sql_ora, string Task_name,List<object> parameters, List<object> param_types)
+        public async Task<List<T>> Get_Ora(string Sql_ora, string Task_name, ORA_parameters parameters)
         {
             Dictionary<string, int> D_columns = new Dictionary<string, int>();
             Dictionary<int, string> P_columns = new Dictionary<int, string>();
@@ -73,7 +73,7 @@ namespace DB_Conect
                 P_columns.Add(counter, p.PropertyInfo.Name.ToLower());
                 counter++;
             }
-            return await Get_Ora(Sql_ora, Task_name, D_columns, P_columns, P_types, parameters,param_types);
+            return await Get_Ora(Sql_ora, Task_name, D_columns, P_columns, P_types, parameters);
         }
         /// <summary>
         /// Get datasets from ORACLE - use this override when columns in query and in class T is diferent and use prepared parameters 
@@ -83,7 +83,7 @@ namespace DB_Conect
         /// <param name="D_columns"></param>
         /// <param name="P_columns"></param>
         /// <returns></returns>
-        public async Task<List<T>> Get_Ora(string Sql_ora, string Task_name, Dictionary<string, int> D_columns, Dictionary<int, string> P_columns, Dictionary<int, Type> P_types,List<object> parameters,List<object> param_types)
+        public async Task<List<T>> Get_Ora(string Sql_ora, string Task_name, Dictionary<string, int> D_columns, Dictionary<int, string> P_columns, Dictionary<int, Type> P_types,ORA_parameters parameters)
         {
             List<T> Rows = new List<T>();
             try
@@ -708,13 +708,30 @@ namespace DB_Conect
                 return 1;
             }
         }       
-     }    
+     } 
+    public class ORA_parameters
+    {
+        ORA_Schema_fields Param_types { get; set; }
+        List<object> Param_values { get; set; }
+    }
+    public class PSTGR_parameters
+    {
+        Npgsql_Schema_fields Param_types { get; set; }
+        List<object> Param_values { get; set; }
+    }
     public class Npgsql_Schema_fields
     {
         public string Field_name { get; set; }
         public int DB_Col_number { get; set; }
         public NpgsqlTypes.NpgsqlDbType Field_type { get; set; }
         public int Dtst_col { get; set; }       
+    }
+    public class ORA_Schema_fields
+    {
+        public string Field_name { get; set; }
+        public int DB_Col_number { get; set; }
+        public OracleDbType Field_type { get; set; }
+        public int Dtst_col { get; set; }
     }
     public class Changes_List<T> where T : class,new() 
     {

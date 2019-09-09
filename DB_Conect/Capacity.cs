@@ -93,7 +93,7 @@ namespace DB_Conect
             {
                 if (other == null) return false;
                 return (Id.Equals(other.Id));
-            }
+            }           
         }
     }
 }
