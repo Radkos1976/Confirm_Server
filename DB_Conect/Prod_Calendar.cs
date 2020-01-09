@@ -22,9 +22,7 @@ namespace DB_Conect
                     Update_pstgr_from_Ora<Calendar> rw = new Update_pstgr_from_Ora<Calendar>();
                     List<Calendar> list_ora = new List<Calendar>();
                     List<Calendar> list_pstgr = new List<Calendar>();
-
                     var dataObject = new ExpandoObject() as IDictionary<string, Object>;
-
                     ORA_parameters Command_prepare = new ORA_parameters();
 
                     Parallel.Invoke(async () =>

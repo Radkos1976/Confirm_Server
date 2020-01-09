@@ -81,7 +81,7 @@
   <ItemGroup>
     <Compile Include="Capacity.cs" />
     <Compile Include="DB.cs" />
-    <Compile Include="Get_Cust_orders.cs" />
+    <Compile Include="Cust_orders.cs" />
     <Compile Include="Metods.cs" />
     <Compile Include="Prod_Calendar.cs" />
     <Compile Include="Settings.cs" />

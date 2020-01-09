@@ -9,23 +9,76 @@ namespace DB_Conect
     /// </summary>
     public class Capacity : Update_pstgr_from_Ora<Capacity.Crp>
     {
-        readonly string Str_oracle_conn = Oracle_conn.Connection_string;
-        private readonly DateTime start = Loger.Serw_run;
-        readonly string npC = Postegresql_conn.Conn_set.ToString();
+        public bool Updated_on_init;
+        public List<Crp> Crp_list;
+        private Update_pstgr_from_Ora<Crp> rw;
+        public Capacity()
+        {
+            {
+                try
+                {
+                    rw = new Update_pstgr_from_Ora<Crp>();
+                    Parallel.Invoke(async () =>
+                    {
+                        Crp_list = await PSTGR_CRP();
+                        if (Crp_list.Count == 0)
+                        {
+                            Updated_on_init = true;
+                            await Ora_CRP();
+                        }
+                        else
+                        {
+                            Crp_list.Sort();
+                            Updated_on_init = false;
+                        }
+                    });
+                }
+                catch (Exception e)
+                {
+                    Loger.Log("Błąd Inicjalizacji obiektu CRP:" + e);
+                }
+            }
+        }
         /// <summary>
         /// Update table with Capacity 
         /// </summary>
         /// <returns></returns>
         public async Task<int> Update_capacity_table()
-        {
+        {            
             try
             {
-                Update_pstgr_from_Ora<Crp> rw = new Update_pstgr_from_Ora<Crp>();
+                rw = new Update_pstgr_from_Ora<Crp>();
                 List<Crp> list_ora = new List<Crp>();
                 List<Crp> list_pstgr = new List<Crp>();
-                Parallel.Invoke(async () =>
+                Parallel.Invoke(
+                    async () =>
                 {
-                    list_ora = await rw.Get_Ora("" +
+                    list_ora = await Ora_CRP();
+                    list_ora.Sort();
+                }, 
+                    async () =>
+                {
+                    list_pstgr = await PSTGR_CRP();
+                    list_pstgr.Sort();
+                });
+                Changes_List<Crp> tmp = rw.Changes(list_pstgr, list_ora, new[] { "id" }, "id", "id");
+                list_ora = null;
+                list_pstgr = null;
+                return await PSTRG_Changes_to_dataTable(tmp, "\"CRP\"", "id", null, null);
+            }
+            catch (Exception e)
+            {
+                Loger.Log("Błąd importu CRP:" + e);
+                return 1;
+            }
+        }
+        private async Task<List<Crp>> PSTGR_CRP()
+        {
+            return await rw.Get_PSTGR("Select * from \"CRP\"", "Pstgr_CRP");
+        }
+        private async Task<List<Crp>> Ora_CRP()
+        {
+            return await rw.Get_Ora("" +
 "select To_Number(a.COUNTER||a.NOTE_ID) id, a.work_day,a.department_no,a.work_center_no,SUM(IFSAPP.Work_Center_Capacity_API.Get_Wc_Capac_Workday__('ST' , a.work_center_no, a.work_day)) capacity," +
 "SUM(IFSAPP.Mach_Operation_Load_Util_API.Planned_Load(A.work_day,'ST',a.work_center_no)) planned,SUM(IFSAPP.Mach_Operation_Load_Util_API.Released_Load(A.work_day,'ST',a.work_center_no)) relased," +
 "Nvl(Sum(c.godz),0) dop " +
@@ -50,18 +103,6 @@ namespace DB_Conect
 "ON c.dat=a.work_day AND C.work_center_no=a.work_center_no " +
 "group by a.COUNTER,a.work_day,a.department_no,a.work_center_no,a.NOTE_ID " +
 "ORDER BY To_Number(a.COUNTER||a.NOTE_ID)", "ORA_CRP");
-                    list_ora.Sort();
-                }, async () => { list_pstgr = await rw.Get_PSTGR("Select * from \"CRP\"", "Pstgr_CRP"); list_pstgr.Sort(); });
-                Changes_List<Crp> tmp = rw.Changes(list_pstgr, list_ora, new[] { "id" }, "id", "id");
-                list_ora = null;
-                list_pstgr = null;
-                return await PSTRG_Changes_to_dataTable(tmp, "\"CRP\"", "id", null, null);
-            }
-            catch (Exception e)
-            {
-                Loger.Log("Błąd importu CRP:" + e);
-                return 1;
-            }
         }
         public class Crp : IEquatable<Crp>, IComparable<Crp>
         {

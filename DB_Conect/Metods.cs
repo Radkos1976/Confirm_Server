@@ -53,7 +53,6 @@ namespace DB_Conect
             {"interval",NpgsqlTypes.NpgsqlDbType.Interval }
         };
         static readonly string Str_oracle_conn = Oracle_conn.Connection_string;
-        private readonly DateTime start = Loger.Serw_run;
         readonly string npC = Postegresql_conn.Conn_set.ToString();
         /// <summary>
         /// Get datasets from ORACLE - use this override when columns in query and in class T is same and create prepared parameters 
@@ -568,7 +567,7 @@ namespace DB_Conect
                                     string nam = _Fields.Field_name;
                                     if (guid_col == nam && _Fields.Dtst_col != 10000)
                                     {
-                                        tbl_values = tbl_values + nam;
+                                        tbl_values += nam;
                                         param_values = "=@" + nam.ToLower();
                                         cmd.Parameters.Add("@" + nam.ToLower(), _Fields.Field_type);
                                     }
@@ -711,13 +710,13 @@ namespace DB_Conect
      } 
     public class ORA_parameters
     {
-        ORA_Schema_fields Param_types { get; set; }
-        List<object> Param_values { get; set; }
+        public ORA_Schema_fields Param_types { get; set; }
+        public List<object> Param_values { get; set; }
     }
     public class PSTGR_parameters
     {
-        Npgsql_Schema_fields Param_types { get; set; }
-        List<object> Param_values { get; set; }
+        public Npgsql_Schema_fields Param_types { get; set; }
+        public List<object> Param_values { get; set; }
     }
     public class Npgsql_Schema_fields
     {
