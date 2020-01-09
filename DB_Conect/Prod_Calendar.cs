@@ -1,8 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Dynamic;
-using System.Linq;
-using System.Text;
 using System.Threading.Tasks;
 
 namespace DB_Conect
@@ -70,7 +68,7 @@ namespace DB_Conect
                 {
                     int result = Calendar_id.CompareTo(other.Calendar_id);
                     if (result == 0)
-                        result =Counter.CompareTo(other.Counter);
+                        result = Counter.CompareTo(other.Counter);
                     return result;
                 }
             }
