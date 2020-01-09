@@ -11,32 +11,55 @@ namespace DB_Conect
     {
         public bool Updated_on_init;
         public List<Crp> Crp_list;
-        private Update_pstgr_from_Ora<Crp> rw;
-        public Capacity()
+        private readonly Update_pstgr_from_Ora<Crp> rw;
+        public Capacity(bool updt)
         {
+            try
             {
-                try
+                rw = new Update_pstgr_from_Ora<Crp>();
+                Parallel.Invoke(async () =>
                 {
-                    rw = new Update_pstgr_from_Ora<Crp>();
-                    Parallel.Invoke(async () =>
+                    if (updt)
+                    {                        
+                        await Ora_CRP();
+                        Updated_on_init = true;
+                    }
+                    else
                     {
                         Crp_list = await PSTGR_CRP();
-                        if (Crp_list.Count == 0)
-                        {
-                            Updated_on_init = true;
-                            await Ora_CRP();
-                        }
-                        else
-                        {
-                            Crp_list.Sort();
-                            Updated_on_init = false;
-                        }
-                    });
-                }
-                catch (Exception e)
+                        Crp_list.Sort();
+                        Updated_on_init = false;
+                    }
+                });
+            }
+            catch (Exception e)
+            {
+                Loger.Log("Błąd Inicjalizacji obiektu CRP:" + e);
+            }
+        } 
+        public Capacity()
+        {
+            try
+            {
+                rw = new Update_pstgr_from_Ora<Crp>();
+                Parallel.Invoke(async () =>
                 {
-                    Loger.Log("Błąd Inicjalizacji obiektu CRP:" + e);
-                }
+                    Crp_list = await PSTGR_CRP();
+                    if (Crp_list.Count == 0)
+                    {
+                        Updated_on_init = true;
+                        await Ora_CRP();
+                    }
+                    else
+                    {
+                        Crp_list.Sort();
+                        Updated_on_init = false;
+                    }
+                });
+            }
+            catch (Exception e)
+            {
+                Loger.Log("Błąd Inicjalizacji obiektu CRP:" + e);
             }
         }
         /// <summary>
@@ -47,7 +70,7 @@ namespace DB_Conect
         {            
             try
             {
-                rw = new Update_pstgr_from_Ora<Crp>();
+                //rw = new Update_pstgr_from_Ora<Crp>();
                 List<Crp> list_ora = new List<Crp>();
                 List<Crp> list_pstgr = new List<Crp>();
                 Parallel.Invoke(

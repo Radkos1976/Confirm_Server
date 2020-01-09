@@ -11,7 +11,32 @@ namespace DB_Conect
     {
         public bool Updated_on_init;
         public List<Orders_row> Orders_list;
-        private Update_pstgr_from_Ora<Orders_row> rw;
+        private readonly Update_pstgr_from_Ora<Orders_row> rw;
+        public Cust_orders(bool updt)
+        {
+            try
+            {
+                rw = new Update_pstgr_from_Ora<Orders_row>();
+                Parallel.Invoke(async () =>
+                {                    
+                    if (updt)
+                    {                        
+                        await Update_cust();
+                        Updated_on_init = true;
+                    }
+                    else
+                    {
+                        Orders_list = await Get_PSTGR_List();
+                        Orders_list.Sort();
+                        Updated_on_init = false;
+                    }
+                });
+            }
+            catch (Exception e)
+            {
+                Loger.Log("Błąd Inicjalizacji obiektu zamówienia klienta:" + e);
+            }
+        }
         public Cust_orders ()
         {
             try
@@ -45,7 +70,7 @@ namespace DB_Conect
         { 
             try
             {
-                rw = new Update_pstgr_from_Ora<Orders_row>();
+                //rw = new Update_pstgr_from_Ora<Orders_row>();
                 List<Orders_row> list_ora = new List<Orders_row>();
                 List<Orders_row> list_pstgr = new List<Orders_row>();
                 Parallel.Invoke(async () =>
