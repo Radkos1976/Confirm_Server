@@ -80,10 +80,8 @@ namespace App_Logic
            
             try
             {
-                // Parallel.Invoke(srv_op, async () => run_cust = await Needs_path(), async () => main = await Supply_path());
-               
-                DbOperations.Update_cust_ord();                
-               
+                // Parallel.Invoke(srv_op, async () => run_cust = await Needs_path(), async () => main = await Supply_path());               
+                DbOperations.Update_cust_ord();              
             }
             catch (AggregateException e)
             {

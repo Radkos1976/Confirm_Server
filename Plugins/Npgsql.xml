@@ -3385,7 +3385,7 @@
         <member name="P:Npgsql.NpgsqlException.IsTransient">
             <summary>
             Specifies whether the exception is considered transient, that is, whether retrying to operation could
-            succeed (e.g. a network error).
+            succeed (e.g. a network error or a timeout).
             </summary>
         </member>
         <member name="M:Npgsql.NpgsqlException.#ctor(System.Runtime.Serialization.SerializationInfo,System.Runtime.Serialization.StreamingContext)">
@@ -3815,7 +3815,7 @@
             class with the parameter name and the data type.
             </summary>
             <param name="parameterName">The name of the parameter to map.</param>
-            <param name="parameterType">One of the <see cref="T:System.Data.DbType">DbType</see> values.</param>
+            <param name="parameterType">One of the <see cref="T:NpgsqlTypes.NpgsqlDbType">NpgsqlDbType</see> values.</param>
         </member>
         <member name="M:Npgsql.NpgsqlParameter.#ctor(System.String,System.Data.DbType)">
             <summary>
@@ -4874,7 +4874,7 @@
             A task representing the asynchronous operation.
             </returns>
         </member>
-        <member name="M:Npgsql.PostgresDatabaseInfo.GenerateTypesQuery(System.Boolean,System.Boolean,System.Boolean,System.Boolean,System.Boolean)">
+        <member name="M:Npgsql.PostgresDatabaseInfo.GenerateTypesQuery(System.Boolean,System.Boolean,System.Boolean,System.Boolean)">
             <summary>
             Generates a raw SQL query string to select type information.
             </summary>
@@ -4882,7 +4882,6 @@
             <param name="withEnum">True to load enum types.</param>
             <param name="withEnumSortOrder"></param>
             <param name="loadTableComposites">True to load table composites.</param>
-            <param name="withTypeCategory">True if the 'pg_type' table includes the 'typcategory' column</param>
             <returns>
             A raw SQL query string that selects type information.
             </returns>
@@ -4981,11 +4980,6 @@
         <member name="P:Npgsql.PostgresException.Statement">
             <summary>
             Returns the statement which triggered this exception.
-            </summary>
-        </member>
-        <member name="P:Npgsql.PostgresException.Data">
-            <summary>
-            Gets a collection of key/value pairs that provide additional PostgreSQL fields about the exception.
             </summary>
         </member>
         <member name="P:Npgsql.PostgresException.Severity">
@@ -6547,7 +6541,7 @@
              See https://www.postgresql.org/docs/current/datatype-json.html.
             
              The type handler API allows customizing Npgsql's behavior in powerful ways. However, although it is public, it
-             should be considered somewhat unstable, and  may change in breaking ways, including in non-major releases.
+             should be considered somewhat unstable, and may change in breaking ways, including in non-major releases.
              Use it at your own risk.
              </remarks>
         </member>
@@ -6568,7 +6562,7 @@
              See https://www.postgresql.org/docs/current/datatype-json.html.
             
              The type handler API allows customizing Npgsql's behavior in powerful ways. However, although it is public, it
-             should be considered somewhat unstable, and  may change in breaking ways, including in non-major releases.
+             should be considered somewhat unstable, and may change in breaking ways, including in non-major releases.
              Use it at your own risk.
              </remarks>
         </member>
@@ -6589,7 +6583,7 @@
              See https://www.postgresql.org/docs/current/datatype-json.html.
             
              The type handler API allows customizing Npgsql's behavior in powerful ways. However, although it is public, it
-             should be considered somewhat unstable, and  may change in breaking ways, including in non-major releases.
+             should be considered somewhat unstable, and may change in breaking ways, including in non-major releases.
              Use it at your own risk.
              </remarks>
         </member>
